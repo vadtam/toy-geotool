@@ -9,7 +9,7 @@ First, build Pageserver and Computer using "$ cargo build --release" using a nig
 - Docker, Docker Compose
 - Redis
 - HaProxy
-- Terraform
+- Terraform, AWS
 - SQL, Postgres
 - Linux, Debian 11
 ## 💬 Good luck to you!
