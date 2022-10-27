@@ -1,0 +1,72 @@
+{% extends "base" %}
+{% block title %}Wells{% endblock title %}
+{% block head %}
+<link rel="stylesheet" href="/static-user/nav.css" type="text/css">
+{% endblock head %}
+{% block content %}
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-auto">
+        <table class="table table-responsive table-bordered table-hover text-center">
+          <caption>List of wells for company {{company.name}}</caption>
+          <thead>
+            <tr>
+              {% if user.category == "Admin" %}
+              <th scope="col">Delete</th>
+              {% endif %}
+              <th scope="col">{% if user.category == "Admin" %}Edit{% else %}View{% endif %}</th>
+              <th scope="col">Name</th>
+              <th scope="col">Tags</th>
+              <th scope="col">Cycles</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for well in wells %}
+            <tr>
+              {% if user.category == "Admin" %}
+              <td><button type="button" class="btn btn-outline-danger"
+                onclick="ShowDeleteWellModal('{{company.id}}', '{{well.id}}');">Delete</button></td>
+              {% endif %}
+              <td><button type="button" class="btn btn-outline-primary"
+                onclick="location.href='/companies/{{company.id}}/wells/{{well.id}}/edit';">{% if user.category == "Admin"%}Edit{% else %}View{% endif %}</button></td>
+              <td>{{well.name}}</td>
+              <td><button type="button" class="btn btn-outline-primary"
+                onclick="location.href='/companies/{{company.id}}/wells/{{well.id}}/tags';">Tags</button></td>
+              <td><button type="button" class="btn btn-outline-primary"
+                onclick="location.href='/companies/{{company.id}}/wells/{{well.id}}/cycles';">Cycles</button></td>
+            </tr>
+            {% endfor %}
+            {% if user.category == "Admin" %}
+            <tr>
+              <td>X</td>
+              <td>X</td>
+              <td><button type="button" class="btn btn-outline-primary"
+                onclick="location.href='/companies/{{company.id}}/wells/new';">New well</button></td>
+              <td>X</td>
+              <td>X</td>
+            </tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div class="modal" tabindex="-1" id="deleteWellModal">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Warning!</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+          <div class="modal-body">
+          <p id="deleteWellModalText"></p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+          <button type="button" id="deleteWellModalActionButton" class="btn btn-primary">Delete well</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="/static-user/nav.js"></script>
+{% endblock content %}

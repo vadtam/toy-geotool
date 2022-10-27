@@ -1,0 +1,37 @@
+services:
+  memdb:
+    build:
+      context: memdb/.
+      dockerfile: Dockerfile
+    image: "geotool-memdb:1.0.0"
+    ports:
+      - "8004:6379"
+  db:
+    build:
+      context: db/.
+      dockerfile: Dockerfile
+    image: "geotool-db:1.0.0"
+    ports:
+      - "8003:5432"
+    volumes:
+      - /var/lib/myprojects/geotool:/var/lib/postgresql/data
+  computer:
+    build:
+      context: computer/.
+      dockerfile: Dockerfile
+    image: "geotool-computer:0.1.0"
+  pageserver:
+    build:
+      context: pageserver/.
+      dockerfile: Dockerfile
+    image: "geotool-pageserver:0.1.0"
+    ports:
+      - "8002:8002"
+  haproxy:
+    build:
+      context: haproxy/dev/.
+      dockerfile: Dockerfile
+    image: "geotool-haproxy:1.0.0"
+    ports:
+      - "8001:8001"
+

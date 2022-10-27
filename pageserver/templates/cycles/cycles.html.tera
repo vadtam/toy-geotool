@@ -1,0 +1,300 @@
+{% extends "base" %}
+{% block title %}Cycles{% endblock title %}
+{% block head %}
+<link rel="stylesheet" href="/static-user/nav.css" type="text/css">
+{% endblock head %}
+{% block content %}
+  {% if is_empty_plot %}
+  <div class="container">
+    <div class="h-100 d-flex align-items-center justify-content-center">
+      <p>Currently unavailable due to missing bhp or rate data.</p>
+    </div>
+  </div>
+  {% else %}
+  <div class="container-fluid">
+    <canvas id="plot"></canvas>
+    <div class="d-flex justify-content-center">
+      <div class="btn-group" role="group" aria-label="Group 1">
+        <input type="radio" class="btn-check" onchange="DeselectLines();"
+          name="btnradio" id="btnradio1" autocomplete="off" checked>
+        <label class="btn btn-outline-primary" for="btnradio1">None</label>
+
+        <input type="radio" class="btn-check" onchange="SelectL2()"
+          name="btnradio" id="btnradio2" autocomplete="off">
+        <label class="btn btn-outline-primary" for="btnradio2">L2</label>
+
+        <input type="radio" class="btn-check" onchange="SelectL3()"
+          name="btnradio" id="btnradio3" autocomplete="off">
+        <label class="btn btn-outline-primary" for="btnradio3">L3</label>
+      </div>
+      <button type="button" class="btn btn-outline-primary" onclick="CommitCycle();" style="margin-left: 30px;">Commit</button>
+    </div>
+  </div>
+  <script src="/static-user/nav.js"></script>
+  <script>
+    var canvas = document.getElementById("plot");
+    window.addEventListener('resize', resizeCanvas, false);
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight-150;
+    } 
+    resizeCanvas();
+    var ctx = canvas.getContext('2d');
+    // line 1
+    const line1 = {
+      id: "line1",
+      type: 'line',
+      scaleID: 'x',
+      borderWidth: 3,
+      borderColor: 'rgba(177, 180, 18, 0.8)',
+      value: {{ line1_time }},
+      label: {
+        content: (ctx) => 'Injection Start Line',
+        enabled: true,
+        rotation: 270,
+        position: 'start',
+        backgroundColor: 'rgba(0, 2, 0, 0.06)',
+        color: 'black',
+      },
+    };
+    // line 2
+    var isLine2Selected = false;
+    const line2 = {
+      id: "line2",
+      type: 'line',
+      scaleID: 'x',
+      borderWidth: 3,
+      borderColor: 'rgba(177, 180, 18, 0.8)',
+      value: {{ line2_time }},
+      label: {
+        content: (ctx) => 'Injection End Line',
+        enabled: true,
+        rotation: 270,
+        position: 'start',
+        backgroundColor: 'rgba(0, 2, 0, 0.06)',
+        color: 'black',
+      },
+    };
+    // line 3
+    var isLine3Selected = false;
+    const line3 = {
+      id: "line3",
+      type: 'line',
+      scaleID: 'x',
+      borderWidth: 3,
+      borderColor: 'rgba(177, 180, 18, 0.8)',
+      value: {{ line3_time }},
+      label: {
+        content: (ctx) => 'Shutin End Line',
+        enabled: true,
+        rotation: 270,
+        position: 'start',
+        backgroundColor: 'rgba(0, 2, 0, 0.06)',
+        color: 'black',
+      },
+    };   
+    const config = {
+      type: 'line',
+      data: {
+        datasets: [
+          {
+            label: 'BHP',
+            data: {{bhp}},
+            borderColor: 'rgba(25, 3, 97, 0.8)',
+            yAxisID: 'y',
+          },
+          {
+            label: 'Rate',
+            data: {{rate}},
+            borderColor: 'rgba(255, 0, 0, 0.58)',
+            yAxisID: 'y2',
+          },
+        ]
+      },
+      options: {
+        parsing: false,
+        normalized: true,
+        animation: false,
+        scales: {
+          x: {
+            type: 'time',
+            title: {
+              display: true,
+              text: 'Time (client time zone)',
+            },
+            min: {{initial_view_time_a}},
+            max: {{initial_view_time_b}},
+          },
+          y: {
+            title: {
+              display: true,
+              text: '{{titles.bhp}}',
+            }
+          },
+          y2: {
+            title: {
+              display: true,
+              text: '{{titles.rate | safe}}',
+            }
+          },
+        },
+        plugins: {
+          zoom: {
+            pan: {
+              enabled: true,
+              mode: 'x',
+            },
+            zoom: {
+              wheel: {
+                enabled: true,
+              },
+              pinch: {
+                enabled: true,
+              },
+              mode: 'x',
+            },
+          },
+          autocolors: false,
+          annotation: {
+            annotations: {
+              line1, line2, line3,
+              {% for cycle in cycleinfos %}
+              cycle{{cycle.id}}: {
+                type: 'box',
+                xMin: {{cycle.t1 * 1000}},
+                xMax: {{cycle.t3 * 1000}},
+                backgroundColor: {% if cycle.status == "Uncommitted" %}'rgba(16, 85, 190, 0.38)'{% else %}{% if cycle.status == "BadData"%}'rgba(0, 0, 0, 0.6)'{% else %}'rgba(0, 141, 0, 0.25)'{% endif %}{% endif %},
+                label: {
+                  content: (ctx) => 'Cycle #{{cycle.id}}',
+                  enabled: true,
+                  rotation: 270,
+                  padding: 0,
+                },
+                click: (ctx, e) => {
+                  window.location.href = '/companies/{{company.id}}/wells/{{well.id}}/cycles/{{cycle.id}}';
+                },
+              },
+              {% endfor %}
+            },
+          },
+        },
+        onHover: (e) => {
+          if(isLine2Selected) {
+            var p = Chart.helpers.getRelativePosition(e, chart);
+            var objs = chart.options.plugins.annotation.annotations;
+            var L1 = objs.line1.value;
+            var L2 = chart.scales.x.getValueForPixel(p.x);             
+            var L3 = objs.line3.value;
+            if((L1 < L2) && (L2 < L3)) {
+              chart.options.plugins.annotation.annotations.line2.value = L2;
+              chart.update();
+            }
+          } else if(isLine3Selected) {
+            var p = Chart.helpers.getRelativePosition(e, chart);
+            var objs = chart.options.plugins.annotation.annotations;
+            var L2 = objs.line2.value;
+            var L3 = chart.scales.x.getValueForPixel(p.x);
+            if(L2 < L3) {
+              chart.options.plugins.annotation.annotations.line3.value = L3;
+              chart.update();
+            }
+          }
+        },
+        onClick: (e) => {
+          if(isLine2Selected) {
+            var p = Chart.helpers.getRelativePosition(e, chart);
+            var objs = chart.options.plugins.annotation.annotations;
+            var L1 = objs.line1.value;
+            var L2 = chart.scales.x.getValueForPixel(p.x);
+            var L3 = objs.line3.value;
+            if((L1 < L2) && (L2 < L3)) {
+              chart.options.plugins.annotation.annotations.line2.value = L2;
+              chart.update();
+            }
+            isLine2Selected = false;
+          } else if(isLine3Selected) {
+            var p = Chart.helpers.getRelativePosition(e, chart);
+            var objs = chart.options.plugins.annotation.annotations;
+            var L2 = objs.line2.value;
+            var L3 = chart.scales.x.getValueForPixel(p.x);
+            if(L2 < L3) {
+              chart.options.plugins.annotation.annotations.line3.value = L3;
+              chart.update();
+            }
+            isLine3Selected = false;
+          }  
+        },
+      },
+    };
+    Chart.defaults.font.size = 20;
+    let chart = new Chart(ctx, config);
+
+    function DeselectLines() {
+      isLine2Selected = false;
+      isLine3Selected = false;
+    };
+
+    function SelectL2() {
+      isLine3Selected = false;
+      isLine2Selected = true;
+    };
+
+    function SelectL3() {
+      isLine2Selected = false;
+      isLine3Selected = true;
+    };
+
+    function CommitCycle() {
+      var objs = chart.options.plugins.annotation.annotations;
+      var form = {};
+      form["T1"] = Math.round(objs.line1.value);
+      form["T2"] = Math.round(objs.line2.value);
+      form["T3"] = Math.round(objs.line3.value);
+
+      $.ajax({
+        type: "POST",
+        url: "/companies/{{company.id}}/wells/{{well.id}}/cycles/new",
+        data: form,
+        success: function(cycleID){
+          window.location.href = "/companies/{{company.id}}/wells/{{well.id}}/cycles/" + cycleID;
+        },
+        error: function(data){
+          alert(data.statusText + ", " + data.responseText);
+        },
+        contentType : "application/x-www-form-urlencoded"
+      });
+    };
+
+    document.body.addEventListener('keyup', function (event) {
+      var character = String.fromCharCode(event.which);
+      if(character == '2') {
+        isLine3Selected = false;
+        isLine2Selected = !isLine2Selected;
+      } else if(character == '3') {
+        isLine2Selected = false;
+        isLine3Selected = !isLine3Selected;
+      } else if(character == 'K') {
+        var objs = chart.options.plugins.annotation.annotations;
+        var form = {};
+        form["T1"] = Math.round(objs.line1.value);
+        form["T2"] = Math.round(objs.line2.value);
+        form["T3"] = Math.round(objs.line3.value);
+
+        $.ajax({
+          type: "POST",
+          url: "/companies/{{company.id}}/wells/{{well.id}}/cycles/new",
+          data: form,
+          success: function(cycleID){
+            window.location.href = "/companies/{{company.id}}/wells/{{well.id}}/cycles/" + cycleID;
+          },
+          error: function(data){
+            alert(data.statusText + ", " + data.responseText);
+          },
+          contentType : "application/x-www-form-urlencoded"
+        });
+      }
+    });
+  </script>
+  {% endif %}
+{% endblock content %}
+

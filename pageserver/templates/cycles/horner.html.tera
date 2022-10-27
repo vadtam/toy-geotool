@@ -1,0 +1,451 @@
+{% extends "base" %}
+{% block title %}Cycle {{cycle.id}}{% endblock title %}
+{% block head %}
+<link rel="stylesheet" href="/static-user/nav.css" type="text/css">
+{% endblock head %}
+{% block content %}
+  <div class="container-fluid">
+    <div class="row">
+      <div class="col col-9">
+        <canvas id="plot"></canvas>
+        <div class="modal" tabindex="-1" id="warningModal">
+          <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title">Warning!</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+              </div>
+              <div class="modal-body">
+                <p id="warningModalText"></p>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="d-flex justify-content-center">
+          <div class="btn-group dropup" role="group">
+            <button id="hornerGroup" type="button"
+              class="btn btn-outline-primary dropdown-toggle"
+              data-bs-toggle="dropdown" aria-expanded="false">
+              Horner
+            </button>
+            <ul class="dropdown-menu" aria-labelledby="hornerGroup">
+              <li><button class="dropdown-item" onclick="StartHorner();">New</button></li>
+              <li><button class="dropdown-item" onclick="DeleteHorner();">Delete</button></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="col col-3">
+        {% include "cycles/menu" %}
+      </div>
+    </div>
+  </div>
+  <script src="/static-user/nav.js"></script>
+  <script>
+    var canvas = document.getElementById("plot");
+    window.addEventListener('resize', resizeCanvas, false);
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    resizeCanvas();
+    var ctx = canvas.getContext('2d');
+
+    {% if xhorner == "BHP" %}
+    var isHornerDone = {% if cycle.horner_bhp.value is defined %}true{% else %}false{% endif %};
+    {% endif %}
+    {% if xhorner == "WHP" %}
+    var isHornerDone = {% if cycle.horner_whp.value is defined %}true{% else %}false{% endif %};
+    {% endif %}
+    {% if xhorner == "BHT" %}
+    var isHornerDone = {% if cycle.horner_bht.value is defined %}true{% else %}false{% endif %};
+    {% endif %}
+    var isBothPointsApplied = false;
+    var isP1selected = false;
+    var isP2selected = false;
+
+    const config = {
+      type: 'line',
+      data: {
+        datasets: [
+          {
+            label: '{{xhorner}}',
+            data: {{horner}},
+            {% if xhorner == "BHP" %}
+            borderColor: 'rgba(25, 3, 97, 0.8)',
+            {% endif %}
+            {% if xhorner == "WHP" %}
+            borderColor: 'rgba(255, 0, 242, 0.63)',
+            {% endif %}
+            {% if xhorner == "BHT" %}
+            borderColor: 'rgba(67, 122, 45, 0.63)',
+            {% endif %}
+          },
+        ]
+      },
+      options: {
+        parsing: false,
+        normalized: true,
+        animation: false,
+        scales: {
+          x: {
+            type: 'linear',
+            title: {
+              display: true,
+              text: 'Horner time, log10((t+dt)/dt)',
+            },
+            min: -0.5,
+          },
+          y: {
+            title: {
+              display: true,
+                {% if xhorner == "BHP" %}
+                text: '{{titles.bhp}}',
+                {% endif %}
+                {% if xhorner == "WHP" %}
+                text: '{{titles.whp}}',
+                {% endif %}
+                {% if xhorner == "BHT" %}
+                text: '{{titles.bht}}',
+                {% endif %}
+            },
+            {% if y_min is defined %}
+            {% if y_min is number %}
+            min: {{y_min}},
+            {% endif %}
+            {% endif %}
+            {% if y_max is defined %}
+            {% if y_max is number %}
+            max: {{y_max}},
+            {% endif %}
+            {% endif %}
+          },
+        },
+        plugins: {
+          zoom: {
+            pan: {
+              enabled: true,
+              mode: 'xy',
+            },
+            zoom: {
+              wheel: {
+                enabled: true,
+              },
+              pinch: {
+                enabled: true,
+              },
+              mode: 'xy',
+              overScaleMode: 'xy',
+            }
+          },
+          autocolors: false,
+          annotation: {
+            annotations: {
+              axisLine: {
+                type: 'line',
+                xMin: 0,
+                xMax: 0,
+                yScaleID: 'y',
+                borderColor: 'rgba(38, 31, 35, 1)',
+                borderWidth: 2,
+                borderDash: [7],
+              },
+              {% if xhorner == "BHP" %}
+              {% if cycle.horner_bhp.value is defined %}
+              hornerLine: {
+                type: 'line',
+                xMin: {{cycle.horner_bhp.x1}},
+                xMax: {{cycle.horner_bhp.x2}},
+                yScaleID: 'y',
+                yMin: {{cycle.horner_bhp.y1}},
+                yMax: {{cycle.horner_bhp.y2}},
+                borderColor: 'rgba(43, 204, 211, 0.86)',
+                borderWidth: 6,
+              },
+              p1: {
+                type: 'point',
+                xValue: {{cycle.horner_bhp.x1}},
+                yValue: {{cycle.horner_bhp.y1}},
+                yScaleID: 'y',
+                backgroundColor: 'rgba(255, 99, 132, 0.25)',
+                pointHitRadius: 25,
+              },
+              p2: {
+                type: 'point',
+                xValue: {{cycle.horner_bhp.x2}},
+                yValue: {{cycle.horner_bhp.y2}},
+                yScaleID: 'y',
+                backgroundColor: 'rgba(255, 99, 132, 0.25)',
+                pointHitRadius: 25,
+              },
+              {% endif %}
+              {% endif %}
+              {% if xhorner == "WHP" %}
+              {% if cycle.horner_whp.value is defined %}
+              hornerLine: {
+                type: 'line',
+                xMin: {{cycle.horner_whp.x1}},
+                xMax: {{cycle.horner_whp.x2}},
+                yScaleID: 'y',
+                yMin: {{cycle.horner_whp.y1}},
+                yMax: {{cycle.horner_whp.y2}},
+                borderColor: 'rgba(43, 204, 211, 0.86)',
+                borderWidth: 6,
+              },
+              p1: {
+                type: 'point',
+                xValue: {{cycle.horner_whp.x1}},
+                yValue: {{cycle.horner_whp.y1}},
+                yScaleID: 'y',
+                backgroundColor: 'rgba(255, 99, 132, 0.25)',
+                pointHitRadius: 25,
+              },
+              p2: {
+                type: 'point',
+                xValue: {{cycle.horner_whp.x2}},
+                yValue: {{cycle.horner_whp.y2}},
+                yScaleID: 'y',
+                backgroundColor: 'rgba(255, 99, 132, 0.25)',
+                pointHitRadius: 25,
+              },
+              {% endif %}
+              {% endif %}
+              {% if xhorner == "BHT" %}
+              {% if cycle.horner_bht.value is defined %}
+              hornerLine: {
+                type: 'line',
+                xMin: {{cycle.horner_bht.x1}},
+                xMax: {{cycle.horner_bht.x2}},
+                yScaleID: 'y',
+                yMin: {{cycle.horner_bht.y1}},
+                yMax: {{cycle.horner_bht.y2}},
+                borderColor: 'rgba(43, 204, 211, 0.86)',
+                borderWidth: 6,
+              },
+              p1: {
+                type: 'point',
+                xValue: {{cycle.horner_bht.x1}},
+                yValue: {{cycle.horner_bht.y1}},
+                yScaleID: 'y',
+                backgroundColor: 'rgba(255, 99, 132, 0.25)',
+                pointHitRadius: 25,
+              },
+              p2: {
+                type: 'point',
+                xValue: {{cycle.horner_bht.x2}},
+                yValue: {{cycle.horner_bht.y2}},
+                yScaleID: 'y',
+                backgroundColor: 'rgba(255, 99, 132, 0.25)',
+                pointHitRadius: 25,
+              },
+              {% endif %}
+              {% endif %}
+            },
+          }
+        },
+        onHover: (e) => {
+          if(isP1selected) {
+            var canvasPosition = Chart.helpers.getRelativePosition(e, chart);
+            var xValue = chart.scales.x.getValueForPixel(canvasPosition.x);
+            chart.options.plugins.annotation.annotations.p1.xValue = xValue;
+            var yValue = chart.scales.y.getValueForPixel(canvasPosition.y);
+            chart.options.plugins.annotation.annotations.p1.yValue = yValue;
+            AdjustHornerLine();
+            chart.update();
+          } else if(isP2selected) {
+            var canvasPosition = Chart.helpers.getRelativePosition(e, chart);
+            var xValue = chart.scales.x.getValueForPixel(canvasPosition.x);
+            chart.options.plugins.annotation.annotations.p2.xValue = xValue;
+            var yValue = chart.scales.y.getValueForPixel(canvasPosition.y);
+            chart.options.plugins.annotation.annotations.p2.yValue = yValue;
+            AdjustHornerLine();
+            chart.update();
+          }
+        },
+        onClick: (e) => {
+          if(isP1selected) {
+            isP1selected = false;
+            var canvasPosition = Chart.helpers.getRelativePosition(e, chart);
+            var xValue = chart.scales.x.getValueForPixel(canvasPosition.x);
+            chart.options.plugins.annotation.annotations.p1.xValue = xValue;
+            var yValue = chart.scales.y.getValueForPixel(canvasPosition.y);
+            chart.options.plugins.annotation.annotations.p1.yValue = yValue;
+            if(!isBothPointsApplied) {
+              var objs = chart.options.plugins.annotation.annotations;
+              var p2 = {
+                type: 'point',
+                xValue: objs.p1.xValue,
+                yValue: objs.p1.yValue,
+                yScaleID: 'y',
+                backgroundColor: 'rgba(255, 99, 132, 0.25)',
+                pointHitRadius: 25,
+              };
+              chart.options.plugins.annotation.annotations['p2'] = p2;
+              isP2selected = true;
+              AdjustHornerLine();
+            } else {
+              CommitHorner();
+            }
+            AdjustHornerLine();
+            chart.update();
+          } else if (isP2selected) {
+            isP2selected = false;
+            isBothPointsApplied = true;
+            var canvasPosition = Chart.helpers.getRelativePosition(e, chart);
+            var xValue = chart.scales.x.getValueForPixel(canvasPosition.x);
+            chart.options.plugins.annotation.annotations.p2.xValue = xValue;
+            var yValue = chart.scales.y.getValueForPixel(canvasPosition.y);
+            chart.options.plugins.annotation.annotations.p2.yValue = yValue;
+            CommitHorner();
+            chart.update();
+          } else {
+            var objs = chart.options.plugins.annotation.annotations;
+            var canvasPosition = Chart.helpers.getRelativePosition(e, chart);
+            var xValue = chart.scales.x.getValueForPixel(canvasPosition.x);
+            var yValue = chart.scales.y.getValueForPixel(canvasPosition.y);
+            var touchDistance = 0.1368;
+            var isAnyPointSelected = false;
+            if(typeof objs.p1 !== 'undefined') {
+              var distance = Math.sqrt(Math.pow((Math.pow(10, objs.p1.xValue) -
+                  Math.pow(10, xValue))/Math.pow(10, objs.p1.xValue), 2) +
+                  Math.pow((objs.p1.yValue - yValue)/objs.p1.yValue, 2));
+              if(distance < touchDistance) {
+                  isP1selected = true;
+                  isAnyPointSelected = true;
+              }
+            }
+            if(typeof objs.p2 !== 'undefined' && !isAnyPointSelected) {
+              var distance = Math.sqrt(Math.pow((Math.pow(10, objs.p2.xValue) -
+                  Math.pow(10, xValue))/Math.pow(10, objs.p2.xValue), 2) +
+                  Math.pow((objs.p2.yValue - yValue)/objs.p2.yValue, 2));
+              if(distance < touchDistance) {
+                  isP2selected = true;
+              }
+            }
+          }
+        }
+      },
+    };
+    Chart.defaults.font.size = 20;
+    let chart = new Chart(ctx, config);
+
+    function StartHorner() {
+      if(isHornerDone) {
+        $('#warningModalText').text("Horner already done.");
+        $('#warningModal').modal('toggle');
+        return;
+      }
+      
+      var p1 = {
+        type: 'point',
+        xValue: 0,
+        yValue: 0,
+        yScaleID: 'y',
+        backgroundColor: 'rgba(255, 99, 132, 0.25)',
+        pointHitRadius: 25,
+      };
+      chart.options.plugins.annotation.annotations['p1'] = p1;
+
+      isP1selected = true;
+    };
+ 
+    function AdjustHornerLine() {
+      var objs = chart.options.plugins.annotation.annotations;
+      if (typeof objs.hornerLine == 'undefined' && typeof objs.p1 !== 'undefined' &&
+          typeof objs.p2 !== 'undefined') {
+        const hornerLine = {
+          type: 'line',
+          xMin: objs.p1.xValue,
+          xMax: objs.p2.xValue,
+          yScaleID: 'y',
+          yMin: objs.p1.yValue,
+          yMax: objs.p2.yValue,
+          borderColor: 'rgba(43, 204, 211, 0.86)',
+          borderWidth: 6,
+        }
+        chart.options.plugins.annotation.annotations['hornerLine'] = hornerLine;
+      } else if(typeof objs.p1 == 'undefined' ||
+          typeof objs.p2 == 'undefined') {
+        return;
+      }
+      chart.options.plugins.annotation.annotations.hornerLine.xMin = objs.p1.xValue;
+      chart.options.plugins.annotation.annotations.hornerLine.yMin = objs.p1.yValue;
+      chart.options.plugins.annotation.annotations.hornerLine.xMax = objs.p2.xValue;
+      chart.options.plugins.annotation.annotations.hornerLine.yMax = objs.p2.yValue;
+    };
+
+    function CommitHorner() {
+      var objs = chart.options.plugins.annotation.annotations;
+      var form = {};
+      form["category"] = '{{xhorner}}';
+      if(objs.p1.xValue < objs.p2.xValue) {
+        form["x1"] = objs.p1.xValue;
+        form["y1"] = objs.p1.yValue;
+        form["x2"] = objs.p2.xValue;
+        form["y2"] = objs.p2.yValue;
+      } else {
+        form["x1"] = objs.p2.xValue;
+        form["y1"] = objs.p2.yValue;
+        form["x2"] = objs.p1.xValue;
+        form["y2"] = objs.p1.yValue;
+      }
+
+      $.ajax({
+        type: "POST",
+        url: "/companies/{{company.id}}/wells/{{well.id}}/cycles/{{cycle.id}}/horner",
+        data: form,
+        success: function(data){
+          const hornerLine = {
+            type: 'line',
+            xMin: objs.p1.xValue,
+            xMax: objs.p2.xValue,
+            yScaleID: 'y',
+            yMin: objs.p1.yValue,
+            yMax: objs.p2.yValue,
+            borderColor: 'rgba(43, 204, 211, 0.86)',
+            borderWidth: 6,
+          }
+          chart.options.plugins.annotation.annotations['hornerLine'] = hornerLine;
+          isHornerDone = true;
+          chart.update();
+        },
+        error: function(){
+        },
+        contentType : "application/x-www-form-urlencoded"
+      });
+    };
+
+    function DeleteHorner() {
+      if(!isHornerDone) {
+        $('#warningModalText').text("Horner is not done yet.");
+        $('#warningModal').modal('toggle');
+        return;
+      }
+
+      isHornerDone = false;
+      isBothPointsApplied = false;
+      isP1selected = false;
+      isP2selected = false;
+      delete chart.options.plugins.annotation.annotations.p1;
+      delete chart.options.plugins.annotation.annotations.p2;
+      delete chart.options.plugins.annotation.annotations.hornerLine;
+
+      $.ajax({
+        type: "DELETE",
+        url: "/companies/{{company.id}}/wells/{{well.id}}/cycles/{{cycle.id}}/horner-{{xhorner | lower}}",
+        success: function(data){
+          isHornerDone = false;
+        },
+        error: function(){
+        },
+        contentType : "text/plain"
+      });
+
+      chart.update();
+    };
+    {% include "cycles/switcher" %}
+  </script>
+{% endblock content %}

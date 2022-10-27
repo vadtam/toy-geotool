@@ -1,0 +1,38 @@
+function SwitcherHandler(direction) {
+  var reqUrl = "/companies/{{company.id}}/wells/{{well.id}}/cycles/{{cycle.id}}" + direction;
+  var form = {};
+  form["url"] = window.location.pathname;
+  $.ajax({
+      type: "POST",
+      url: reqUrl,
+      data: form,
+      success: function(newUrl){
+        window.location.href = newUrl; 
+      },
+      error: function(resp){
+        alert(resp.responseText);
+      },
+      contentType : "application/x-www-form-urlencoded"
+  });
+};
+
+document.body.addEventListener('keyup', function (event) {
+  var c = String.fromCharCode(event.which);
+  if(c == '&'){
+    // arrow up
+    var direction = "/previous-analysis";
+    SwitcherHandler(direction);
+  } else if(c == '(') {
+    // arrow down
+    var direction = "/next-analysis";
+    SwitcherHandler(direction);
+  } else if(c == '%') {
+    // arrow left
+    var direction = "/previous-cycle";
+    SwitcherHandler(direction);
+  } else if(c == "'") {
+    // arrow right
+    var direction = "/next-cycle";
+    SwitcherHandler(direction);
+  }
+});

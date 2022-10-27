@@ -1,0 +1,290 @@
+{% extends "base" %}
+{% block title %}Cycle {{cycle.id}}{% endblock title %}
+{% block head %}
+<link rel="stylesheet" href="/static-user/nav.css" type="text/css">
+{% endblock head %}
+{% block content %}
+  <div class="container-fluid">
+    <div class="row">
+      <div class="col col-9">
+        <canvas id="plot"></canvas>
+        <div class="modal" tabindex="-1" id="warningModal">
+          <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title">Warning!</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+              </div>
+              <div class="modal-body">
+                <p id="warningModalText"></p>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="d-flex justify-content-center">
+          <div class="btn-group" role="group" aria-label="Group 1">
+            <input type="radio" class="btn-check" onchange="DeselectLines();"
+              name="btnradio" id="btnradio1" autocomplete="off" checked>
+            <label class="btn btn-outline-primary" for="btnradio1">None</label>
+
+            <input type="radio" class="btn-check" onchange="SelectRateLine()"
+              name="btnradio" id="btnradio2" autocomplete="off">
+            <label class="btn btn-outline-primary" for="btnradio2">Rate</label>
+
+            <input type="radio" class="btn-check" onchange="SelectBhpLine()"
+              name="btnradio" id="btnradio3" autocomplete="off">
+            <label class="btn btn-outline-primary" for="btnradio3">BHP</label>
+          </div>
+        </div>
+      </div>
+      <div class="col col-3">
+        {% include "cycles/menu" %}
+      </div>
+    </div>
+  </div>
+  <script src="/static-user/nav.js"></script>
+  <script>
+    var canvas = document.getElementById("plot");
+    window.addEventListener('resize', resizeCanvas, false);
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    resizeCanvas();
+    var ctx = canvas.getContext('2d');
+    
+    var isTimeshiftDone = {% if cycle.stiffness.timeshift is defined %}true{% else %}false{% endif %};
+    var isRateSelected = false;
+    var isBhpSelected = false;
+
+    const config = {
+      type: 'line',
+      data: {
+        datasets: [
+          {
+            label: 'BHP',
+            data: {{bhp}},
+            borderColor: 'rgba(25, 3, 97, 0.8)',
+            yAxisID: 'y',
+          },
+          {
+            label: 'Rate',
+            data: {{rate}},
+            borderColor: 'rgba(255, 0, 0, 0.58)',
+            yAxisID: 'y2',
+          },
+        ]
+      },
+      options: {
+        parsing: false,
+        normalized: true,
+        animation: false,
+        scales: {
+          x: {
+            type: 'time',
+            title: {
+              display: true,
+              text: 'Time (client time zone)',
+            },
+          },
+          y: {
+            title: {
+              display: true,
+              text: '{{titles.bhp}}',
+            }
+          },
+          y2: {
+            title: {
+              display: true,
+              text: '{{titles.rate | safe}}',
+            }
+          },
+        },
+        plugins: {
+          zoom: {
+            pan: {
+              enabled: true,
+              mode: 'xy',
+            },
+            zoom: {
+              wheel: {
+                enabled: true,
+              },
+              pinch: {
+                enabled: true,
+              },
+              mode: 'xy',
+            },
+          },
+          autocolors: false,
+          annotation: {
+            annotations: {
+              {% if cycle.stiffness.timeshift is defined %}
+              bhp: {
+                id: "line",
+                type: 'line',
+                scaleID: 'x',
+                borderWidth: 3,
+                borderColor: 'rgba(177, 180, 18, 0.8)',
+                value: {{cycle.stiffness.bhp_time_ms}},
+                label: {
+                  content: (ctx) => 'BHP Line',
+                  enabled: true,
+                  rotation: 270,
+                  position: 'center',
+                  backgroundColor: 'rgba(0, 2, 0, 0.06)',
+                  color: 'black',
+                },
+              },
+              rate: {
+                id: "line",
+                type: 'line',
+                scaleID: 'x',
+                borderWidth: 3,
+                borderColor: 'rgba(177, 180, 18, 0.8)',
+                value: {{cycle.stiffness.rate_time_ms}},
+                label: {
+                  content: (ctx) => 'Rate Line',
+                  enabled: true,
+                  rotation: 270,
+                  position: 'start',
+                  backgroundColor: 'rgba(0, 2, 0, 0.06)',
+                  color: 'black',
+                },
+              },
+              {% endif %}
+            },
+          },
+        },
+        onHover: (e) => {
+          var objs = chart.options.plugins.annotation.annotations;
+          var canvasPosition = Chart.helpers.getRelativePosition(e, chart);
+          var xValue = chart.scales.x.getValueForPixel(canvasPosition.x);
+          var yValue = chart.scales.y.getValueForPixel(canvasPosition.y);
+          var isUpdateNeeded = false;
+          if (typeof objs.rate !== 'undefined') {
+              if(objs.rate.value == 0 || isRateSelected) {
+                  chart.options.plugins.annotation.annotations.rate.value = xValue;
+                  isUpdateNeeded = true;
+              }
+          }
+          if (typeof objs.bhp !== 'undefined') {
+             if(objs.bhp.value == 0 || isBhpSelected) {
+                  chart.options.plugins.annotation.annotations.bhp.value = xValue;
+                  isUpdateNeeded = true;
+              }
+          }
+          if(isUpdateNeeded) {
+              chart.update();
+          }
+        },
+        onClick: (e) => {
+          var objs = chart.options.plugins.annotation.annotations;
+          var canvasPosition = Chart.helpers.getRelativePosition(e, chart);
+          var xValue = chart.scales.x.getValueForPixel(canvasPosition.x);
+          var yValue = chart.scales.y.getValueForPixel(canvasPosition.y);
+          if(isRateSelected) {
+            isRateSelected = false;
+            chart.options.plugins.annotation.annotations.rate.value = xValue;
+            if(typeof objs.bhp == 'undefined') {
+              SelectBhpLine();
+            } else {
+              CommitTimeshift();
+            }
+          } else if(isBhpSelected) {
+            isBhpSelected = false;
+            chart.options.plugins.annotation.annotations.bhp.value = xValue;
+            if(typeof objs.rate == 'undefined') {
+              SelectRateLine();
+            } else {
+              CommitTimeshift();
+            } 
+          }
+        },
+      }
+    };
+    Chart.defaults.font.size = 20;
+    let chart = new Chart(ctx, config);
+
+    function DeselectLines() {
+        isBhpSelected = false;
+        isRateSelected = false;
+        if(!isTimeshiftDone) {
+          delete chart.options.plugins.annotation.annotations.bhp;
+          delete chart.options.plugins.annotation.annotations.rate;
+          chart.update();
+        }
+    };
+
+    function SelectRateLine() {
+      var objs = chart.options.plugins.annotation.annotations;
+      if(typeof objs.rate == 'undefined') {
+        const line = {
+          id: "line",
+          type: 'line',
+          scaleID: 'x',
+          borderWidth: 3,
+          borderColor: 'rgba(177, 180, 18, 0.8)',
+          value: 0,
+          label: {
+            content: (ctx) => 'Rate Line',
+            enabled: true,
+            rotation: 270,
+            position: 'start',
+            backgroundColor: 'rgba(0, 2, 0, 0.06)',
+            color: 'black',
+          },
+        };
+        chart.options.plugins.annotation.annotations.rate = line;
+      }
+      isRateSelected = true;
+    };
+
+    function SelectBhpLine() {
+      var objs = chart.options.plugins.annotation.annotations;
+      if(typeof objs.bhp == 'undefined') {
+        const line = {
+          id: "line",
+          type: 'line',
+          scaleID: 'x',
+          borderWidth: 3,
+          borderColor: 'rgba(177, 180, 18, 0.8)',
+          value: 0,
+          label: {
+            content: (ctx) => 'BHP Line',
+            enabled: true,
+            rotation: 270,
+            position: 'center',
+            backgroundColor: 'rgba(0, 2, 0, 0.06)',
+            color: 'black',
+          },
+        };
+        chart.options.plugins.annotation.annotations.bhp = line;
+      }
+      isBhpSelected = true;
+    };
+
+    function CommitTimeshift() {
+      var objs = chart.options.plugins.annotation.annotations;
+      var form = {};
+      form["bhpTime"] = Math.round(objs.bhp.value);
+      form["rateTime"] = Math.round(objs.rate.value);
+
+      $.ajax({
+        type: "POST",
+        url: "/companies/{{company.id}}/wells/{{well.id}}/cycles/{{cycle.id}}/stiffness-timeshift",
+        data: form,
+        success: function(cycleID){
+          isTimeshiftDone = true;
+        },
+        error: function(data){
+        },
+        contentType : "application/x-www-form-urlencoded"
+      });
+    };
+    {% include "cycles/switcher" %}  
+  </script>
+{% endblock content %}

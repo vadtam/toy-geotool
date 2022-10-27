@@ -1,0 +1,5 @@
+<h3>unknown request</h3>
+<p>response code: {{ status_code }}</p>
+<p>response reason: {{ status_reason }}</p>
+<p>uri: {{ uri }}</p>
+

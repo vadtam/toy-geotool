@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>{% block title %}{% endblock title %}</title>
+  <link rel="icon" href="/static-public/favicon.ico" type="image/x-icon">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/css/bootstrap.min.css" type="text/css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+  {% if not login_page is defined %}
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.1/chart.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/date-fns/1.30.1/date_fns.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@2.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hammer.js/2.0.8/hammer.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-zoom/1.2.1/chartjs-plugin-zoom.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-annotation/1.4.0/chartjs-plugin-annotation.min.js"></script>
+  {% endif %}
+  {% block head %}{% endblock head %}
+</head>
+<body style="font-family: Georgia, serif;">
+  {% if not login_page is defined %}
+  <nav class="navbar navbar-expand-lg navbar-light bg-light">
+    <a target="_self" class="navbar-brand btn" href="{{back_url}}">
+        <img src="/static-public/favicon.ico" style="width: 32px; height: 32px;">
+    </a>
+    <div class="me-auto"></div>
+    <div class="dropdown dropstart">
+      <a class="navbar-brand dropdown-toggle" type="button" id="dropdownUserMenu" data-bs-toggle="dropdown"
+          aria-expanded="false">{{user.first_name}}</a>
+      <ul class="dropdown-menu" aria-labelledby="dropdownUserMeny">
+        <li><a class="dropdown-item" href="/logout">Logout</a></li>
+      </ul>
+    </div>
+  </nav
+  {% endif %}
+  {% block content %}{% endblock content %}
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/2.11.5/umd/popper.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/js/bootstrap.min.js"></script>
+</body>
+</html>

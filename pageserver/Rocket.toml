@@ -1,0 +1,27 @@
+[default]
+port = 8002
+template_dir = "templates/"
+secret_key = "Yin+TKDobJ7nJUUjGbMRQW9jNruMjKqpLx0kGcv71qE="
+
+[default.limits]
+json = "2 MiB"
+form = "2 MiB"
+
+[default.databases.geotool]
+# https://api.rocket.rs/v0.5-rc/rocket_db_pools/struct.Config.html
+url = "postgres://pageserver:my-secret-pw@db:5432/geotool"
+min_connections = 2
+max_connections = 10
+idle_timeout = 120
+
+[default.databases.redis]
+url = "redis://memdb:6379/1"
+min_connections = 2
+idle_timeout = 120
+
+[debug]
+address = "127.0.0.1"
+
+[release]
+address = "0.0.0.0"
+

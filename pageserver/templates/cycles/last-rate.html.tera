@@ -1,0 +1,533 @@
+{% extends "base" %}
+{% block title %}Cycle {{cycle.id}}{% endblock title %}
+{% block head %}
+<link rel="stylesheet" href="/static-user/nav.css" type="text/css">
+{% endblock head %}
+{% block content %}
+  <div class="container-fluid">
+    <div class="row">
+      <div class="col col-9">
+        <canvas id="plot"></canvas>
+        <div class="modal" tabindex="-1" id="warningModal">
+          <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title">Warning!</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+              </div>
+              <div class="modal-body">
+                <p id="warningModalText"></p>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="d-flex justify-content-center">
+          <div class="btn-group dropup" role="group">
+            <button id="lastRateGroup" type="button"
+              class="btn btn-outline-primary dropdown-toggle"
+              data-bs-toggle="dropdown" aria-expanded="false">
+              Last Rate
+            </button>
+            <ul class="dropdown-menu" aria-labelledby="lastRateGroup">
+              <li><button class="dropdown-item" onclick="StartLastRate();">New</button></li>
+              <li><button class="dropdown-item" onclick="DeleteLastRate();">Delete</button></li>
+            </ul>
+          </div>
+          <div class="btn-group dropup" role="group" style="margin-left: 30px;">
+            <button id="isipGroup" type="button"
+              class="btn btn-outline-primary dropdown-toggle"
+              data-bs-toggle="dropdown" aria-expanded="false">
+              ISIP
+            </button>
+            <ul class="dropdown-menu" aria-labelledby="isipGroup">
+              <li><button class="dropdown-item" onclick="StartISIP();">New</button></li>
+              <li><button class="dropdown-item" onclick="DeleteISIP();">Delete</button></li>
+            </ul>
+          </div>
+          <div class="btn-group dropup" role="group" style="margin-left: 30px;">
+            <button id="whGroup" type="button"
+              class="btn btn-outline-primary dropdown-toggle"
+              data-bs-toggle="dropdown" aria-expanded="false">
+              Water Hammer
+            </button>
+            <ul class="dropdown-menu" aria-labelledby="whGroup">
+              <li><button class="dropdown-item" onclick="StartWaterHammer();">New</button></li>
+              <li><button class="dropdown-item" onclick="DeleteWaterHammer();">Delete</button></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="col col-3">
+        {% include "cycles/menu" %}
+      </div>
+    </div>
+  </div>
+  <script src="/static-user/nav.js"></script>
+  <script>
+    var canvas = document.getElementById("plot");
+    window.addEventListener('resize', resizeCanvas, false);
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    resizeCanvas();
+    var ctx = canvas.getContext('2d');
+
+    var isLastRateSelected = false;
+    var isLastRateDone = {% if cycle.last_rate.value is defined %}true{% else %}false{% endif %};
+    var isISIPselected = false;
+    var isISIPp1Selected = false;
+    var isISIPp2Selected = false;
+    {% if is_bhp%}
+    var isISIPdone = {% if cycle.isip_bhp.time is defined %}true{% else %}false{% endif %};
+    var isWHdone = {% if cycle.waterhammer_bhp_endto is number %}true{% else %}false{% endif %};
+    {% else %}
+    var isISIPdone = {% if cycle.isip_whp.time is defined %}true{% else %}false{% endif %};
+    var isWHdone = {% if cycle.waterhammer_whp_endto is number %}true{% else %}false{% endif %};
+    {% endif %}
+    var isWHselected = false;
+
+    const config = {
+      type: 'line',
+      data: {
+        datasets: [
+          {
+            label: '{% if is_bhp %}BHP{% else %}WHP{% endif %}',
+            data: {{pressure}},
+            borderColor: '{% if is_bhp %}rgba(25, 3, 97, 0.8){% else %}rgba(255, 0, 242, 0.63){% endif %}',
+            yAxisID: 'y',
+          },
+          {
+            label: 'Rate',
+            data: {{rate}},
+            borderColor: 'rgba(255, 0, 0, 0.58)',
+            yAxisID: 'y2',
+          },
+        ]
+      },
+      options: {
+        parsing: false,
+        normalized: true,
+        animation: false,
+        scales: {
+          x: {
+            type: 'time',
+            title: {
+              display: true,
+              text: 'Time (client time zone)',
+            },
+          },
+          y: {
+            title: {
+              display: true,
+              text: '{% if is_bhp %}{{titles.bhp}}{% else %}{{titles.whp}}{% endif %}',
+            }
+          },
+          y2: {
+            title: {
+              display: true,
+              text: '{{titles.rate | safe}}',
+            }
+          },
+        },
+        plugins: {
+          zoom: {
+            pan: {
+              enabled: true,
+              mode: 'xy',
+            },
+            zoom: {
+              wheel: {
+                enabled: true,
+              },
+              pinch: {
+                enabled: true,
+              },
+              mode: 'xy',
+            },
+          },
+          autocolors: false,
+          annotation: {
+            annotations: {
+              {% if cycle.last_rate.value is defined %}
+              lastRate: {
+                type: 'point',
+                xValue: {{cycle.last_rate.time * 1000}},
+                yValue: {{cycle.last_rate.value}},
+                yScaleID: 'y2',
+                backgroundColor: 'rgba(255, 99, 132, 0.25)',
+                pointHitRadius: 25,
+              },
+              {% endif %}
+              {% if is_bhp %}
+              {% if cycle.isip_bhp.time is defined %}
+              isipLine: {
+                type: 'line',
+                xMin: {{cycle.isip_bhp.time * 1000}},
+                xMax: {{cycle.isip_bhp.time * 1000}},
+                yScaleID: 'y',
+                yMin: {{cycle.isip_bhp.lower_value}},
+                yMax: {{cycle.isip_bhp.upper_value}},
+                borderColor: 'rgba(43, 204, 211, 0.86)',
+                borderWidth: 6,
+                label: {
+                  content: (ctx) => "Δp = " + {{cycle.isip_bhp.upper_value - cycle.isip_bhp.lower_value}}.toFixed(1) +" {{text_units.pressure}}",
+                  enabled: true,
+                  rotation: 270,
+                  position: 'center',
+                  backgroundColor: 'rgba(0, 2, 0, 0.06)',
+                  color: 'black',
+                  xAdjust: -30,
+                },
+              },
+              {% endif %}
+              {% if cycle.waterhammer_bhp_endto is number %}
+              waterHammer: {
+                type: 'box',
+                xMin: {{cycle.isip_bhp.time * 1000}},
+                xMax: {{cycle.waterhammer_bhp_endto * 1000}},
+                yScaleID: 'y',
+                backgroundColor: 'rgba(0, 51, 31, 0.13)',
+              },
+              {% endif %}
+              {% else %}
+              {% if cycle.isip_whp.time is defined %}
+              isipLine: {
+                type: 'line',
+                xMin: {{cycle.isip_whp.time * 1000}},
+                xMax: {{cycle.isip_whp.time * 1000}},
+                yScaleID: 'y',
+                yMin: {{cycle.isip_whp.lower_value}},
+                yMax: {{cycle.isip_whp.upper_value}},
+                borderColor: 'rgba(43, 204, 211, 0.86)',
+                borderWidth: 6,
+                label: {
+                  content: (ctx) => "Δp = " + {{cycle.isip_whp.upper_value - cycle.isip_whp.lower_value}}.toFixed(1) +" {{text_units.pressure}}",
+                  enabled: true,
+                  rotation: 270,
+                  position: 'center',
+                  backgroundColor: 'rgba(0, 2, 0, 0.06)',
+                  color: 'black',
+                  xAdjust: -30,
+                },
+              },
+              {% endif %}
+              {% if cycle.waterhammer_whp_endto is number %}
+              waterHammer: {
+                type: 'box',
+                xMin: {{cycle.isip_whp.time * 1000}},
+                xMax: {{cycle.waterhammer_whp_endto * 1000}},
+                yScaleID: 'y',
+                backgroundColor: 'rgba(0, 51, 31, 0.13)',
+              },
+              {% endif %}
+              {% endif %}
+            },
+          },
+        },
+        onHover: (e) => {
+          if(isLastRateSelected) {
+              var canvasPosition = Chart.helpers.getRelativePosition(e, chart);
+              var xValue = chart.scales.x.getValueForPixel(canvasPosition.x);
+              chart.options.plugins.annotation.annotations.lastRate.xValue = xValue;
+              var yValue = chart.scales.y2.getValueForPixel(canvasPosition.y);
+              chart.options.plugins.annotation.annotations.lastRate.yValue = yValue;
+              chart.update();
+          } else if(isISIPp1Selected) {
+              var canvasPosition = Chart.helpers.getRelativePosition(e, chart);
+              var xValue = chart.scales.x.getValueForPixel(canvasPosition.x);
+              chart.options.plugins.annotation.annotations.isipP1.xValue = xValue;
+              var yValue = chart.scales.y.getValueForPixel(canvasPosition.y);
+              chart.options.plugins.annotation.annotations.isipP1.yValue = yValue;
+              chart.update();
+          } else if(isISIPp2Selected) {
+              var canvasPosition = Chart.helpers.getRelativePosition(e, chart);
+              var isipP1 = chart.options.plugins.annotation.annotations.isipP1;
+              chart.options.plugins.annotation.annotations.isipP2.xValue = isipP1.xValue;
+              var yValue = chart.scales.y.getValueForPixel(canvasPosition.y);
+              chart.options.plugins.annotation.annotations.isipP2.yValue = yValue;
+              chart.update();
+          } else if(isWHselected) {
+              var canvasPosition = Chart.helpers.getRelativePosition(e, chart);
+              xValue = chart.scales.x.getValueForPixel(canvasPosition.x);
+              xMin = chart.options.plugins.annotation.annotations.waterHammer.xMin;
+              if(xValue > xMin) { 
+                chart.options.plugins.annotation.annotations.waterHammer.xMax = xValue;
+                chart.update();
+              }
+          }
+        },
+        onClick: (e) => {
+          if(isLastRateSelected) {
+              isLastRateSelected = false;
+              var canvasPosition = Chart.helpers.getRelativePosition(e, chart);
+              var xValue = chart.scales.x.getValueForPixel(canvasPosition.x);
+              chart.options.plugins.annotation.annotations.lastRate.xValue = xValue;
+              var yValue = chart.scales.y2.getValueForPixel(canvasPosition.y);
+              chart.options.plugins.annotation.annotations.lastRate.yValue = yValue;
+              chart.update();
+
+              var lastRate = chart.options.plugins.annotation.annotations.lastRate; 
+              var form = {};
+              form["time"] = Math.round(lastRate.xValue);
+              form["value"] = lastRate.yValue;
+ 
+              $.ajax({
+                type: "POST",
+                url: "/companies/{{company.id}}/wells/{{well.id}}/cycles/{{cycle.id}}/last-rate",
+                data: form,
+                success: function(data){
+                  isLastRateAnalysisSelected = false;
+                  isLastRateAnalysisPerformed = true;
+                },
+                error: function(){
+                },
+                contentType : "application/x-www-form-urlencoded"
+              });
+          } else if(isISIPp1Selected) {
+              isISIPp1Selected = false;
+              var canvasPosition = Chart.helpers.getRelativePosition(e, chart);
+              var xValue = chart.scales.x.getValueForPixel(canvasPosition.x);
+              chart.options.plugins.annotation.annotations.isipP1.xValue = xValue;
+              var yValue = chart.scales.y.getValueForPixel(canvasPosition.y);
+              chart.options.plugins.annotation.annotations.isipP1.yValue = yValue;
+              chart.update();
+              var isipP2 = {
+                type: 'point',
+                xValue: 0,
+                yValue: 0,
+                yScaleID: 'y',
+                backgroundColor: 'rgba(177, 236, 173, 0.66)',
+                pointHitRadius: 25,
+              };
+              chart.options.plugins.annotation.annotations['isipP2'] = isipP2;
+              isISIPp2Selected = true;
+          } else if(isISIPp2Selected) {
+              isISIPp2Selected = false;
+              isISIPdone = true;
+              var canvasPosition = Chart.helpers.getRelativePosition(e, chart);
+              var isipP1 = chart.options.plugins.annotation.annotations.isipP1;
+              chart.options.plugins.annotation.annotations.isipP2.xValue = isipP1.xValue;
+              var yValue = chart.scales.y.getValueForPixel(canvasPosition.y);
+              chart.options.plugins.annotation.annotations.isipP2.yValue = yValue;
+              var isipP2 = chart.options.plugins.annotation.annotations.isipP2;
+              var dp = Math.abs(isipP2.yValue - isipP1.yValue);
+
+              var isipLine = {
+                type: 'line',
+                xMin: isipP1.xValue,
+                xMax: isipP2.xValue,
+                yScaleID: 'y',
+                yMin: isipP1.yValue,
+                yMax: isipP2.yValue,
+                borderColor: 'rgba(43, 204, 211, 0.86)',
+                borderWidth: 6,
+                label: {
+                  content: (ctx) => "Δp = " + dp.toFixed(1) +" {{text_units.pressure}}",
+                  enabled: true,
+                  rotation: 270,
+                  position: 'center',
+                  backgroundColor: 'rgba(0, 2, 0, 0.06)',
+                  color: 'black',
+                  xAdjust: -30,
+                },
+              }
+              chart.options.plugins.annotation.annotations['isipLine'] = isipLine;
+              delete chart.options.plugins.annotation.annotations.isipP1;
+              delete chart.options.plugins.annotation.annotations.isipP2;
+
+              var form = {};
+              form["category"] = '{% if is_bhp %}BHP{% else %}WHP{% endif %}';
+              form["time"] = Math.round(isipP2.xValue);
+              form["y1"] = isipP1.yValue;
+              form["y2"] = isipP2.yValue;
+
+              $.ajax({
+                type: "POST",
+                url: "/companies/{{company.id}}/wells/{{well.id}}/cycles/{{cycle.id}}/isip",
+                data: form,
+                success: function(data){
+                },
+                error: function(){
+                },
+                contentType : "application/x-www-form-urlencoded"
+              });
+
+              chart.update();
+          } else if(isWHselected) {
+              isWHselected = false;
+              isWHdone = true;
+              var canvasPosition = Chart.helpers.getRelativePosition(e, chart);
+              xValue = chart.scales.x.getValueForPixel(canvasPosition.x);
+              xMin = chart.options.plugins.annotation.annotations.waterHammer.xMin;
+              if(xValue > xMin) { 
+                chart.options.plugins.annotation.annotations.waterHammer.xMax = xValue;
+              } else {
+                $('#warningModalText').text("Water hammer is not reasonable.");
+                $('#warningModal').modal('toggle');
+                return;
+              }
+
+              var form = {};
+              form["category"] = '{% if is_bhp %}BHP{% else %}WHP{% endif %}';
+              form["endTime"] = Math.round(xValue);
+
+              $.ajax({
+                type: "POST",
+                url: "/companies/{{company.id}}/wells/{{well.id}}/cycles/{{cycle.id}}/water-hammer",
+                data: form,
+                success: function(data){
+                },
+                error: function(){
+                },
+                contentType : "application/x-www-form-urlencoded"
+              });
+
+              chart.update();
+          } else {
+              var objs = chart.options.plugins.annotation.annotations;
+              var lastRate = objs.lastRate;
+              if(typeof lastRate !== 'undefined') {
+                var canvasPosition = Chart.helpers.getRelativePosition(e, chart);
+                var xValue = chart.scales.x.getValueForPixel(canvasPosition.x);
+                var yValue = chart.scales.y2.getValueForPixel(canvasPosition.y);
+                var distance = Math.sqrt(Math.pow((lastRate.xValue - xValue)/lastRate.xValue, 2) +
+                  Math.pow((lastRate.yValue - yValue)/lastRate.yValue, 2));
+                alert(distance);
+                if(distance < {% if well.units == "US"%}1.665e-8{% else%}0.005{% endif %}) {
+                  isLastRateSelected = true;
+                }
+              }
+          }
+        }
+      },
+    };
+    Chart.defaults.font.size = 20;
+    let chart = new Chart(ctx, config);
+
+    function StartLastRate() {
+      if(isLastRateDone) {
+        $('#warningModalText').text("Last Rate already done.");
+        $('#warningModal').modal('toggle');
+        return;
+      }
+      isLastRateSelected = true;
+      var lastRate = {
+        type: 'point',
+        xValue: 0,
+        yValue: 0,
+        yScaleID: 'y2',
+        backgroundColor: 'rgba(255, 99, 132, 0.25)',
+        pointHitRadius: 25,
+      };
+      chart.options.plugins.annotation.annotations['lastRate'] = lastRate;
+    };
+
+    function DeleteLastRate() {
+      isLastRateSelected = false;
+      isLastRateDone = false;
+      delete chart.options.plugins.annotation.annotations.lastRate;
+      $.ajax({
+        type: "DELETE",
+        url: "/companies/{{company.id}}/wells/{{well.id}}/cycles/{{cycle.id}}/last-rate",
+        success: function(data){
+          isLastRateAnalysisSelected = false;
+          isLastRateAnalysisPerformed = false;
+        },
+        error: function(){
+        },
+        contentType : "text/plain"
+      });
+      chart.update();
+    };
+
+    function StartISIP() {
+      if(isISIPdone) {
+        $('#warningModalText').text("ISIP already done.");
+        $('#warningModal').modal('toggle');
+        return;
+      }
+      isISIPselected = true;
+      var isipP1 = {
+        type: 'point',
+        xValue: 0,
+        yValue: 0,
+        yScaleID: 'y',
+        backgroundColor: 'rgba(177, 236, 173, 0.66)',
+        pointHitRadius: 25,
+      };
+      chart.options.plugins.annotation.annotations['isipP1'] = isipP1;
+      isISIPp1Selected = true;
+    };
+
+    function DeleteISIP() {
+      if(isWHdone) {
+        DeleteWaterHammer();
+      }
+      isISIPselected = false;
+      isISIPdone = false;
+      isISIPp1Selected = false;
+      isISIPp2Selected = false;
+
+      delete chart.options.plugins.annotation.annotations.isipP1;
+      delete chart.options.plugins.annotation.annotations.isipP2;
+      delete chart.options.plugins.annotation.annotations.isipLine;
+      $.ajax({
+        type: "DELETE",
+        url: "/companies/{{company.id}}/wells/{{well.id}}/cycles/{{cycle.id}}/isip-{% if is_bhp %}bhp{% else %}whp{% endif %}",
+        success: function(data){
+        },
+        error: function(){
+        },
+        contentType : "text/plain"
+      });
+
+      chart.update();
+    };
+
+    function StartWaterHammer() {
+      if(!isISIPdone) {
+        $('#warningModalText').text("ISIP must be done first.");
+        $('#warningModal').modal('toggle');
+        return;
+      }
+      if(isWHdone) {
+        $('#warningModalText').text("Water Hammer already done.");
+        $('#warningModal').modal('toggle');
+        return;
+      }
+      var isipLine = chart.options.plugins.annotation.annotations.isipLine;
+      var wh = {
+        type: 'box',
+        xMin: isipLine.xMin,
+        xMax: isipLine.xMin,
+        yScaleID: 'y',
+        backgroundColor: 'rgba(0, 51, 31, 0.13)',
+      }
+      chart.options.plugins.annotation.annotations['waterHammer'] = wh;
+      isWHselected = true;
+    };
+
+    function DeleteWaterHammer() {
+      isWHselected = false;
+      isWHdone = false;
+      delete chart.options.plugins.annotation.annotations.waterHammer;
+
+      $.ajax({
+        type: "DELETE",
+        url: "/companies/{{company.id}}/wells/{{well.id}}/cycles/{{cycle.id}}/water-hammer-{% if is_bhp %}bhp{% else %}whp{% endif %}",
+        success: function(data){
+        },
+        error: function(){
+        },
+        contentType : "text/plain"
+      });
+
+      chart.update();
+    };
+    {% include "cycles/switcher" %}
+  </script>
+{% endblock content %}

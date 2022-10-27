@@ -1,0 +1,250 @@
+{% extends "base" %}
+{% block title %}{% if is_new_mode %}New well{% else %}{% if user.category == "Admin" %}Edit well{% else %}View well{% endif %}{% endif %}{% endblock title %}
+{% block head %}
+<link rel="stylesheet" href="/static-user/nav.css" type="text/css">
+{% endblock head %}
+{% block content %}
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-auto">
+          <h3>{% if is_new_mode %}New well{% else %}{% if user.category == "Admin" %}Edit well{% else %}View well{% endif %}{% endif %} for {{company.name}}</h3>
+          <form method="post" id="well-form">
+              <div class="form-group">
+                  <label class="sr-only" for="id">Well ID</label>
+                  <div class="input-group mb-2">
+                      <div class="input-group-prepend">
+                          <div class="input-group-text">@</div>
+                      </div>
+                      <input type="text" class="form-control" name="id" autocomplete="off"
+                          aria-describedby="id-help" id="id-group"
+                          placeholder="Enter well ID"{% if not is_new_mode %} value="{{well.id}}" disabled{% endif %} pattern="[a-z0-9]{2,32}" required>
+                  </div>
+                  {% if user.category == "Admin" %}
+                  <small id="id-help" class="form-text text-muted">Text, lowercase without spaces [a-z0-9]{2,32}, e.g b54</small>
+                  {% endif %}
+              </div>
+              <div class="form-group">
+                  <label for="name">Name</label>
+                  <input type="text" class="form-control" name="name" autocomplete="off" aria-describedby="name-help"
+                      placeholder="Enter well name"{% if not is_new_mode %} value="{{well.name}}"{% endif %} required{% if user.category != "Admin" %} disabled{% endif %}>
+                  {% if user.category == "Admin" %}
+                  <small id="name-help" class="form-text text-muted">Any text</small>
+                  {% endif %}
+              </div>
+              <div class="form-group">
+                  <label for="initial-reservoir-pressure">Initial reservoir pressure, psi</label>
+                  <input type="number" step="any" min="0" class="form-control" name="initial-reservoir-pressure" autocomplete="off"
+                    aria-describedby="initial-reservoir-pressure-help"
+                    placeholder="{% if user.category == "Admin" %}Enter initial reservoir pressure{% else %}None{% endif %}"{% if not is_new_mode %} value="{% if well.initial_reservoir_pressure is number %}{{well.initial_reservoir_pressure | round(method="ceil", precision=1)}}{% endif %}"{% endif %}{% if user.category != "Admin" %} disabled{% endif %}>
+                  {% if user.category == "Admin" %}
+                  <small id="initial-reservoir-pressure-help" class="form-text text-muted">None or a positive number.</small>
+                  {% endif %}
+              </div>
+              <div class="form-group">
+                  <label for="pressure-sensors-height">Vertical distance between BHP and WHP sensors, ft</label>
+                  <input type="number" step="any" min="0" class="form-control" name="pressure-sensors-height" autocomplete="off"
+                    aria-describedby="pressure-sensors-height-help"
+                    placeholder="{% if user.category == "Admin" %}Enter pressure sensors height{% else %}None{% endif %}"{% if not is_new_mode %} value="{% if well.pressure_sensors_height is number %}{{well.pressure_sensors_height | round(method="ceil", precision=1) }}{% endif %}"{% endif %}{% if user.category != "Admin" %} disabled{% endif %}> 
+                  {% if user.category == "Admin" %}
+                  <small id="pressure-sensors-height-help" class="form-text text-muted">None or a positive number</small>
+                  {% endif %}
+              </div>
+              <div class="form-group">
+                  <br>
+                  <label for="units">Website Units</label>
+                  <div class="form-check">
+                     <input class="form-check-input" type="radio" name="units" id="choice1"
+                         value="US" required{% if not is_new_mode %}{% if well.units == "US" %} checked{% endif %}{% endif %}{% if user.category != "Admin" %} disabled{% endif %}>
+                     <label class="form-check-label" for="choice1">American (psi, bbl, ft, etc)</label>
+                 </div>
+                 <div class="form-check">
+                     <input class="form-check-input" type="radio" name="units" id="choice2"
+                         value="EU"{% if not is_new_mode %}{% if well.units == "EU" %} checked{% endif %}{% endif %}{% if user.category != "Admin" %} disabled{% endif %}>
+                     <label class="form-check-label" for="choice2">European (bar, m3, m, etc) </label>
+                 </div>
+              </div>
+              <div class="form-group">
+                  <br>
+                  <label for="bhp-mode">BHP Computation mode</label>
+                  <div class="form-check">
+                     <input class="form-check-input" type="radio" name="bhp-mode" id="choice1"
+                         value="off" required{% if not is_new_mode %}{% if well.bhp_mode == "Off" %} checked{% endif %}{% endif %}{% if user.category != "Admin" %} disabled{% endif %}>
+                     <label class="form-check-label" for="choice1">Off</label>
+                 </div>
+                 <div class="form-check">
+                     <input class="form-check-input" type="radio" name="bhp-mode" id="choice2"
+                         value="client"{% if not is_new_mode %}{% if well.bhp_mode == "Client" %} checked{% endif %}{% endif %}{% if user.category != "Admin" %} disabled{% endif %}>
+                     <label class="form-check-label" for="choice2">Client</label>
+                 </div>
+                 <div class="form-check">
+                     <input class="form-check-input" type="radio" name="bhp-mode" id="choice3"
+                         value="server"{% if not is_new_mode %}{% if well.bhp_mode == "Server" %} checked{% endif %}{% endif %}{% if user.category != "Admin" %} disabled{% endif %}>
+                     <label class="form-check-label" for="choice3">Server</label>
+                 </div>
+              </div>
+              <div class="form-group">
+                  <br>
+                  <label for="bht-mode">BHT Computation mode</label>
+                  <div class="form-check">
+                     <input class="form-check-input" type="radio" name="bht-mode" id="choice1"
+                         value="off" required{% if not is_new_mode %}{% if well.bht_mode == "Off" %} checked{% endif %}{% endif %}{% if user.category != "Admin" %} disabled{% endif %}>
+                     <label class="form-check-label" for="choice1">Off</label>
+                 </div>
+                 <div class="form-check">
+                     <input class="form-check-input" type="radio" name="bht-mode" id="choice2"
+                         value="client"{% if not is_new_mode %}{% if well.bht_mode == "Client" %} checked{% endif %}{% endif %}{% if user.category != "Admin" %} disabled{% endif %}>
+                     <label class="form-check-label" for="choice2">Client</label>
+                 </div>
+                 <div class="form-check">
+                     <input class="form-check-input" type="radio" name="bht-mode" id="choice3"
+                         value="server"{% if not is_new_mode %}{% if well.bht_mode == "Server" %} checked{% endif %}{% endif %}{% if user.category != "Admin" %} disabled{% endif %}>
+                     <label class="form-check-label" for="choice3">Server</label>
+                 </div>
+              </div>
+              <div class="form-group">
+                  <br>
+                  <label for="whp-mode">WHP Computation mode</label>
+                  <div class="form-check">
+                     <input class="form-check-input" type="radio" name="whp-mode" id="choice1"
+                         value="off" required{% if not is_new_mode %}{% if well.whp_mode == "Off" %} checked{% endif %}{% endif %}{% if user.category != "Admin" %} disabled{% endif %}>
+                     <label class="form-check-label" for="choice1">Off</label>
+                 </div>
+                 <div class="form-check">
+                     <input class="form-check-input" type="radio" name="whp-mode" id="choice2"
+                         value="client"{% if not is_new_mode %}{% if well.whp_mode == "Client" %} checked{% endif %}{% endif %}{% if user.category != "Admin" %} disabled{% endif %}>
+                     <label class="form-check-label" for="choice2">Client</label>
+                 </div>
+                 <div class="form-check">
+                     <input class="form-check-input" type="radio" name="whp-mode" id="choice3"
+                         value="server"{% if not is_new_mode %}{% if well.whp_mode == "Server" %} checked{% endif %}{% endif %}{% if user.category != "Admin" %} disabled{% endif %}>
+                     <label class="form-check-label" for="choice3">Server</label>
+                 </div>
+              </div>
+              <div class="form-group">
+                  <br>
+                  <label for="rate-mode">Rate Computation mode</label>
+                  <div class="form-check">
+                     <input class="form-check-input" type="radio" name="rate-mode" id="choice1"
+                         value="off" required{% if not is_new_mode %}{% if well.rate_mode == "Off" %} checked{% endif %}{% endif %}{% if user.category != "Admin" %} disabled{% endif %}>
+                     <label class="form-check-label" for="choice1">Off</label>
+                 </div>
+                 <div class="form-check">
+                     <input class="form-check-input" type="radio" name="rate-mode" id="choice2"
+                         value="client"{% if not is_new_mode %}{% if well.rate_mode == "Client" %} checked{% endif %}{% endif %}{% if user.category != "Admin" %} disabled{% endif %}>
+                     <label class="form-check-label" for="choice2">Client</label>
+                 </div>
+                 <div class="form-check">
+                     <input class="form-check-input" type="radio" name="rate-mode" id="choice3"
+                         value="server"{% if not is_new_mode %}{% if well.rate_mode == "Server" %} checked{% endif %}{% endif %}{% if user.category != "Admin" %} disabled{% endif %}>
+                     <label class="form-check-label" for="choice3">Server</label>
+                 </div>
+              </div>
+              <div class="form-group">
+                  <br>
+                  <label for="rho-mode">Density Computation mode</label>
+                  <div class="form-check">
+                     <input class="form-check-input" type="radio" name="rho-mode" id="choice1"
+                         value="off" required{% if not is_new_mode %}{% if well.rho_mode == "Off" %} checked{% endif %}{% endif %}{% if user.category != "Admin" %} disabled{% endif %}>
+                     <label class="form-check-label" for="choice1">Off</label>
+                 </div>
+                 <div class="form-check">
+                     <input class="form-check-input" type="radio" name="rho-mode" id="choice2"
+                         value="client"{% if not is_new_mode %}{% if well.rho_mode == "Client" %} checked{% endif %}{% endif %}{% if user.category != "Admin" %} disabled{% endif %}>
+                     <label class="form-check-label" for="choice2">Client</label>
+                 </div>
+                 <div class="form-check">
+                     <input class="form-check-input" type="radio" name="rho-mode" id="choice3"
+                         value="server"{% if not is_new_mode %}{% if well.rho_mode == "Server" %} checked{% endif %}{% endif %}{% if user.category != "Admin" %} disabled{% endif %}>
+                     <label class="form-check-label" for="choice3">Server</label>
+                 </div>
+              </div>
+              <div class="form-group">
+                  <br>
+                  <label for="vtot-mode">Total Volume Computation mode</label>
+                  <div class="form-check">
+                     <input class="form-check-input" type="radio" name="vtot-mode" id="choice1"
+                         value="off" required{% if not is_new_mode %}{% if well.vtot_mode == "Off" %} checked{% endif %}{% endif %}{% if user.category != "Admin" %} disabled{% endif %}>
+                     <label class="form-check-label" for="choice1">Off</label>
+                 </div>
+                 <div class="form-check">
+                     <input class="form-check-input" type="radio" name="vtot-mode" id="choice2"
+                         value="client"{% if not is_new_mode %}{% if well.vtot_mode == "Client" %} checked{% endif %}{% endif %}{% if user.category != "Admin" %} disabled{% endif %}>
+                     <label class="form-check-label" for="choice2">Client</label>
+                 </div>
+                 <div class="form-check">
+                     <input class="form-check-input" type="radio" name="vtot-mode" id="choice3"
+                         value="server"{% if not is_new_mode %}{% if well.vtot_mode == "Server" %} checked{% endif %}{% endif %}{% if user.category != "Admin" %} disabled{% endif %}>
+                     <label class="form-check-label" for="choice3">Server</label>
+                 </div>
+              </div>
+              <div class="form-group">
+                  <br>
+                  <label for="ii-mode">Injectivity Computation mode</label>
+                  <div class="form-check">
+                     <input class="form-check-input" type="radio" name="ii-mode" id="choice1"
+                         value="off" required{% if not is_new_mode %}{% if well.ii_mode == "Off" %} checked{% endif %}{% endif %}{% if user.category != "Admin" %} disabled{% endif %}>
+                     <label class="form-check-label" for="choice1">Off</label>
+                 </div>
+                 <div class="form-check">
+                     <input class="form-check-input" type="radio" name="ii-mode" id="choice2"
+                         value="client"{% if not is_new_mode %}{% if well.ii_mode == "Client" %} checked{% endif %}{% endif %}{% if user.category != "Admin" %} disabled{% endif %}>
+                     <label class="form-check-label" for="choice2">Client</label>
+                 </div>
+                 <div class="form-check">
+                     <input class="form-check-input" type="radio" name="ii-mode" id="choice3"
+                         value="server"{% if not is_new_mode %}{% if well.ii_mode == "Server" %} checked{% endif %}{% endif %}{% if user.category != "Admin" %} disabled{% endif %}>
+                     <label class="form-check-label" for="choice3">Server</label>
+                 </div>
+              </div>
+              <br>
+              {% if user.category == "Admin" %}
+              <button type="submit" class="btn btn-outline-primary">{% if is_new_mode %}Publish{% else %}Save{% endif %}</button>
+              {% endif %}
+          </form>
+          <br> 
+      </div>
+    </div>
+  </div>
+  <div class="modal" tabindex="-1" id="formErrorModal">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Server message</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p id="serverText"></p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="/static-user/nav.js"></script>
+  {% if user.category == "Admin" %}
+  <script>
+  document.forms['well-form'].addEventListener('submit', (event) => {
+    event.preventDefault();
+    fetch("{% if is_new_mode %}/companies/{{company.id}}/wells/new{% else %}/companies/{{company.id}}/wells/{{well.id}}/edit{% endif %}", {
+        method: 'POST',
+        body: new URLSearchParams(new FormData(event.target)) // event.target is the form
+    }).then((resp) => {
+        if(resp.status == 202) {
+            $('#serverText').text("");
+            window.location.href = "/companies/{{company.id}}/wells";
+        } else {
+            return resp.text();
+        }; 
+    }).then((body) => {
+        if(body.length > 0) {
+          $('#serverText').text(body);
+          $('#formErrorModal').modal('toggle');
+        }
+    }).catch((error) => {
+    });
+  });
+  </script>
+  {% endif %}
+{% endblock content %}
+

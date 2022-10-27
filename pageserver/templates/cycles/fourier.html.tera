@@ -1,0 +1,253 @@
+{% extends "base" %}
+{% block title %}Cycle {{cycle.id}}{% endblock title %}
+{% block head %}
+<link rel="stylesheet" href="/static-user/nav.css" type="text/css">
+{% endblock head %}
+{% block content %}
+  {% if is_bhp %}
+  {% set_global is_applied = cycle.waterhammer_bhp_endto is number %}
+  {% else %}
+  {% set_global is_applied = cycle.waterhammer_whp_endto is number %}
+  {% endif %}
+  <div class="container-fluid">
+    <div class="row">
+      <div class="col col-9">
+        {% if is_applied %}
+        <canvas id="plot"></canvas>
+        <div class="modal" tabindex="-1" id="warningModal">
+          <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title">Warning!</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+              </div>
+              <div class="modal-body">
+                <p id="warningModalText"></p>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+              </div>
+            </div>
+          </div>  
+        </div>
+        <div class="d-flex justify-content-center">
+          <div class="btn-group dropup" role="group">
+            <button id="fourierGroup" type="button"
+              class="btn btn-outline-primary dropdown-toggle"
+              data-bs-toggle="dropdown" aria-expanded="false">
+              Fourier
+            </button>
+            <ul class="dropdown-menu" aria-labelledby="fourierGroup">
+              <li><button class="dropdown-item" onclick="StartFourier();">New</button></li>
+              <li><button class="dropdown-item" onclick="DeleteFourier();">Delete all</button></li>
+            </ul>
+          </div>
+        </div>
+        {% else %}
+        <div class="h-100 d-flex align-items-center justify-content-center">
+          <p>Apply Water Hammer {% if is_bhp %}BHP{% else %}WHP{% endif %} first.</p>
+        </div>
+        {% endif %}
+      </div>
+      <div class="col col-3">
+        {% include "cycles/menu" %}
+      </div>
+    </div>
+  </div>
+  <script src="/static-user/nav.js"></script>
+  <script>
+    {% if is_applied %}
+    var canvas = document.getElementById("plot");
+    window.addEventListener('resize', resizeCanvas, false);
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    resizeCanvas();
+    var ctx = canvas.getContext('2d');
+
+    var isNewPointMode = false;
+    var nPoints = {{points | length}};
+
+    const config = {
+      type: 'line',
+      data: {
+        datasets: [
+          {
+            label: 'Fourier {% if is_bhp%}BHP{% else%}WHP{% endif %}',
+            data: {{fourier}},
+            {% if is_bhp%}
+            borderColor: 'rgba(25, 3, 97, 0.8)',
+            {% else %}
+            borderColor: 'rgba(255, 0, 242, 0.63)',
+            {% endif %}
+          },
+        ]
+      },
+      options: {
+        parsing: false,
+        normalized: true,
+        animation: false,
+        scales: {
+          x: {
+            type: 'linear',
+            title: {
+              display: true,
+              text: 'Frequency, Hz',
+            },
+          },
+          y: {
+            title: {
+              display: true,
+              text: 'Amplitude',
+            },
+            {% if y_max is number %}
+            max: {{y_max}},
+            {% endif %}
+            min: 0.0,
+          },
+        },
+        plugins: {
+          zoom: {
+            pan: {
+              enabled: true,
+              mode: 'xy',
+            },
+            zoom: {
+              wheel: {
+                enabled: true,
+              },
+              pinch: {
+                enabled: true,
+              },
+              mode: 'xy',
+              overScaleMode: 'xy',
+            }
+          },
+          autocolors: false,
+          annotation: {
+            annotations: {
+              {% for point in points %}
+              p{{point.id}}: {
+                type: 'point',
+                xValue: {{point.x}},
+                yValue: {{point.y}},
+                yScaleID: 'y',
+                backgroundColor: 'rgba(255, 99, 132, 0.25)',
+                pointHitRadius: 25,
+              },
+              {% endfor %}
+            }
+          }
+        },
+        onHover: (e) => {
+          if(isNewPointMode) {
+            var canvasPosition = Chart.helpers.getRelativePosition(e, chart);
+            var xValue = chart.scales.x.getValueForPixel(canvasPosition.x);
+            var yValue = chart.scales.y.getValueForPixel(canvasPosition.y);
+            var key = GetNewPointKey();
+            chart.options.plugins.annotation.annotations[key].xValue = xValue;
+            chart.options.plugins.annotation.annotations[key].yValue = yValue;
+            chart.update();
+          }
+        },
+        onClick: (e) => {
+          if(isNewPointMode) {
+            var canvasPosition = Chart.helpers.getRelativePosition(e, chart);
+            var xValue = chart.scales.x.getValueForPixel(canvasPosition.x);
+            var yValue = chart.scales.y.getValueForPixel(canvasPosition.y);
+            var key = GetNewPointKey();
+            chart.options.plugins.annotation.annotations[key].xValue = xValue;
+            chart.options.plugins.annotation.annotations[key].yValue = yValue;
+            isNewPointMode = false;
+            nPoints += 1;
+            CommitFourier();
+            chart.update();
+          }
+        },
+      }
+    };
+
+    function GetNewPointKey() {
+      return 'p' + (nPoints + 1).toString();
+    };
+
+    function GetKey(id) {
+      return 'p' + id.toString();
+    }
+
+    function StartFourier() {
+      var p = {
+        type: 'point',
+        xValue: 0,
+        yValue: 0,
+        yScaleID: 'y',
+        backgroundColor: 'rgba(255, 99, 132, 0.25)',
+        pointHitRadius: 25,
+      };
+      var key = GetNewPointKey();
+      chart.options.plugins.annotation.annotations[key] = p;
+      isNewPointMode = true;
+    };
+
+    function CommitFourier() {
+      if(nPoints == 0) {
+        return;
+      }
+      var objs = chart.options.plugins.annotation.annotations;
+      var form = {};
+      form["category"] = '{% if is_bhp%}bhp{% else %}whp{% endif %}';
+      var pointsPointer = nPoints;
+      while(pointsPointer != 0) {
+        var key = GetKey(pointsPointer);
+        var obj = objs[key];
+        var xkey = "points[" + pointsPointer.toString() + "].x";
+        form[xkey] = obj.xValue;
+        var ykey = "points[" + pointsPointer.toString() + "].y";
+        form[ykey] = obj.yValue;
+        pointsPointer -= 1;
+      }
+      $.ajax({
+        type: "POST",
+        url: "/companies/{{company.id}}/wells/{{well.id}}/cycles/{{cycle.id}}/fourier",
+        data: form,
+        success: function(data){
+        },
+        error: function(){
+        },
+        contentType : "application/x-www-form-urlencoded"
+      });
+    };
+
+    function DeleteFourier() {
+      if(nPoints == 0) {
+        $('#warningModalText').text("Nothing to delete.");
+        $('#warningModal').modal('toggle');
+        return;
+      }
+      isNewPointMode = false;
+      while(nPoints != 0) {
+        var key = GetKey(nPoints);
+        delete chart.options.plugins.annotation.annotations[key];
+        nPoints -= 1;  
+      }
+
+      $.ajax({
+        type: "DELETE",
+        url: "/companies/{{company.id}}/wells/{{well.id}}/cycles/{{cycle.id}}/fourier-{% if is_bhp%}bhp{% else%}whp{% endif %}",
+        success: function(data){
+        },
+        error: function(){
+        },
+        contentType : "text/plain"
+      });
+
+      chart.update();
+    };
+
+    Chart.defaults.font.size = 20;
+    let chart = new Chart(ctx, config);
+    {% endif %}
+    {% include "cycles/switcher" %}
+  </script>
+{% endblock content %}

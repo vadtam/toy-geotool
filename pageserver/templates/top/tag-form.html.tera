@@ -1,0 +1,94 @@
+{% extends "base" %}
+{% block title %}{% if is_new_mode %}New tag{% else %}{% if user.category == "Admin" %}Edit tag{% else %}View tag{% endif %}{% endif %}{% endblock title %}
+{% block head %}
+<link rel="stylesheet" href="/static-user/nav.css" type="text/css">
+{% endblock head %}
+{% block content %}
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-auto">
+          <h3>{% if is_new_mode %}New tag{% else %}{% if user.category == "Admin" %}Edit tag{% else %}View tag{% endif %}{% endif %}</h3>
+          <form method="post" id="tag-form">
+              <div class="form-group">
+                  <label for="name">Name</label>
+                  <input type="text" class="form-control" name="name" autocomplete="off" aria-describedby="name-help"
+                      placeholder="Enter tag name"{% if not is_new_mode %} value="{{tag.name}}"{% endif %} required{% if user.category != "Admin" %} disabled{% endif %}>
+                  {% if user.category == "Admin"%}
+                  <small id="name-help" class="form-text text-muted">Any text</small>
+                  {% endif %}
+              </div>
+              <div class="form-group">
+                  <label for="description" class="form-label">Description</label>
+                  <textarea class="form-control" name="description" rows="3"{% if user.category != "Admin" %} disabled{% endif %}>{% if not is_new_mode %}{{tag.description}}{% endif %}</textarea>
+              </div>
+              <div class="form-group">
+                  <br>
+                  <label for="value-size">Point Value Primitive Type</label>
+                  <div class="form-check">
+                     <input class="form-check-input" type="radio" name="value-size" id="choice1"
+                         value="f32" required{% if not is_new_mode %}{% if tag.value_size == "F32" %} checked{% endif %} disabled{% endif %}>
+                     <label class="form-check-label" for="choice1">Single precision (Float32)</label>
+                 </div>
+                 <div class="form-check">
+                     <input class="form-check-input" type="radio" name="value-size" id="choice2"
+                         value="f64"{% if not is_new_mode %}{% if tag.value_size == "F64" %} checked{% endif %} disabled{% endif %}>
+                     <label class="form-check-label" for="choice2">Double precision (Float64)</label>
+                 </div>
+              </div>
+              <br>
+              <div class="form-group">
+                  <label for="units-text">Units (arbitrary text)</label>
+                  <input type="text" class="form-control" name="units-text" autocomplete="off" aria-describedby="units-text-help"
+                      placeholder="Enter units text"{% if not is_new_mode %} value="{{tag.units_text}}"{% endif %} required{% if user.category != "Admin" %} disabled{% endif %}>
+              </div>
+              <br>
+              {% if user.category == "Admin" %}
+              <button type="submit" class="btn btn-outline-primary">{% if is_new_mode %}Publish{% else %}Save{% endif %}</button>
+              {% endif %}
+          </form> 
+      </div>
+    </div>
+  </div>
+  <div class="modal" tabindex="-1" id="formErrorModal">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Server message</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p id="serverText"></p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="/static-user/nav.js"></script>
+  {% if user.category == "Admin" %}
+  <script>
+  document.forms['tag-form'].addEventListener('submit', (event) => {
+    event.preventDefault();
+    fetch("{% if is_new_mode %}/companies/{{company.id}}/wells/{{well.id}}/tags/new{% else %}/companies/{{company.id}}/wells/{{well.id}}/tags/{{tag.id}}/edit{% endif %}", {
+        method: 'POST',
+        body: new URLSearchParams(new FormData(event.target)) // event.target is the form
+    }).then((resp) => {
+        if(resp.status == 202) {
+            $('#serverText').text("");
+            window.location.href = "/companies/{{company.id}}/wells/{{well.id}}/tags";
+        } else {
+            return resp.text();
+        }; 
+    }).then((body) => {
+        if(body.length > 0) {
+          $('#serverText').text(body);
+          $('#formErrorModal').modal('toggle');
+        }
+    }).catch((error) => {
+    });
+  });
+  </script>
+  {% endif %}
+{% endblock content %}
+

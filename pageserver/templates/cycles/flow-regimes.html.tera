@@ -1,0 +1,23 @@
+{% extends "base" %}
+{% block title %}Cycle {{cycle.id}}{% endblock title %}
+{% block head %}
+<link rel="stylesheet" href="/static-user/nav.css" type="text/css">
+{% endblock head %}
+{% block content %}
+  <div class="container-fluid">
+    <div class="row">
+      <div class="col col-9">
+        <div class="h-100 d-flex align-items-center justify-content-center">
+          <p>Not implemented. Pending.</p>
+        </div>
+      </div>
+      <div class="col col-3">
+        {% include "cycles/menu" %}
+      </div>
+    </div>
+  </div>
+  <script src="/static-user/nav.js"></script>
+  <script>
+   {% include "cycles/switcher" %}
+  </script>
+{% endblock content %}

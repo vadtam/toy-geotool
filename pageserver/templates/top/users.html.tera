@@ -1,0 +1,93 @@
+{% extends "base" %}
+{% block title %}Users{% endblock title %}
+{% block head %}
+<link rel="stylesheet" href="/static-user/nav.css" type="text/css">
+{% endblock head %}
+{% block content %}
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-auto">
+        <table class="table table-responsive table-bordered table-hover text-center">
+          <caption>List of users for {{company.name}}</caption>
+          <thead>
+            <tr>
+              {% if user.category == "Admin" %}
+              <th scope="col">Delete</th>
+              {% endif %}
+              <th scope="col">{% if user.category == "Admin" %}Edit{% else %}View{% endif %}</th>
+              <th scope="col">First Name</th>
+              <th scope="col">Last Name</th>
+              <th scope="col">Category</th>
+              <th scope="col">Last Active</th>
+              <th scope="col">Website Access</th>
+              <th scope="col">Api Access</th>
+              <th scope="col">Edit Password</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for xuser in users %}
+            <tr>
+              {% if user.category == "Admin" %}
+              <td>{% if not can_delete_user(companyid = company.id, xusercategory = xuser.category, xuserid = xuser.id, userid = user.id) %}X{% else %}<button type="button" class="btn btn-outline-danger"
+                onclick="ShowDeleteUserModal('{{company.id}}', '{{xuser.id}}');">Delete</button>{% endif %}</td>
+              {% endif %}
+              <td><button type="button" class="btn btn-outline-primary"
+                onclick="location.href='/companies/{{company.id}}/users/{{xuser.id}}/edit';">{% if user.category == "Admin" %}Edit{% else %}View{% endif %}</button></td>
+              <td>{{xuser.first_name}}</td>
+              <td>{{xuser.last_name}}</td>
+              <td>{{xuser.category}}</td>
+              <td>{{xuser.last_active | last_active}}</td>
+              <td>{{xuser.web_access}}</td>
+              <td>{{xuser.api_access}}</td>
+              {% if user.category == "Admin" %}
+              <td><button type="button" class="btn btn-outline-primary"
+                onclick="location.href='/companies/{{company.id}}/users/{{xuser.id}}/edit-password';">Edit password</button></td>
+              {% else %}
+              {% if user.id == xuser.id %}
+              <td><button type="button" class="btn btn-outline-primary"
+                onclick="location.href='/companies/{{company.id}}/users/{{xuser.id}}/edit-password';">Edit password</button></td>
+              {% else %}
+              <td>X</td>
+              {% endif %}
+              {% endif %}
+            </tr>
+            {% endfor %}
+            {% if user.category == "Admin" %}
+            <tr>
+              <td>X</td>
+              <td>X</td>
+              <td><button type="button" class="btn btn-outline-primary"
+                onclick="location.href='/companies/{{company.id}}/users/new';">New user</button></td>
+              <td>X</td>
+              <td>X</td>
+              <td>X</td>
+              <td>X</td>
+              <td>X</td>
+              <td>X</td>
+            </tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div class="modal" tabindex="-1" id="deleteUserModal">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Warning!</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+          <div class="modal-body">
+          <p id="deleteUserModalText"></p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+          <button type="button" id="deleteUserModalActionButton" class="btn btn-primary">Delete user</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="/static-user/nav.js"></script>
+{% endblock content %}
+

@@ -1,0 +1,191 @@
+{% extends "base" %}
+{% block title %}Cycle {{cycle.id}}{% endblock title %}
+{% block head %}
+<link rel="stylesheet" href="/static-user/nav.css" type="text/css">
+{% endblock head %}
+{% block content %}
+  <div class="container-fluid">
+    <div class="row">
+      <div class="col col-5">
+        <table class="table table-bordered table-hover">
+          <caption>General info</caption>
+          <thead>
+            <tr>
+              <th scope="col">Parameter</th>
+              <th scope="col">Value</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="text-nowrap">Injection Start</td>
+              <td id="t1"></td>
+            </tr>
+            <tr>
+              <td>Injection End</td>
+              <td id="t2"></td>
+            </tr>
+            <tr>
+              <td>Shutin End</td>
+              <td id="t3"></td>
+            </tr>
+            <tr>
+              <td class="text-nowrap">Injection duration</td>
+              <td>{{injection_duration_ss}}</td>
+            </tr>
+            <tr>
+              <td>Shutin duration</td>
+              <td>{{shutin_duration_ss}}</td>
+            </tr>
+            <tr>
+              <td>Cycle duration</td>
+              <td>{{cycle_duration_ss}}</td>
+            </tr>
+            <tr>
+              <td class="text-nowrap">Batch volume, {{text_units.volume}}</td>
+              <td>{% if cycle.batch_volume is number %}{{cycle.batch_volume | round(method="ceil", precision=1)}}{% else %}NA{% endif %}</td>
+            </tr>
+            <tr>
+              <td class="text-nowrap">Total volume, {{text_units.volume}}</td>
+              <td>{% if cycle.total_volume is number %}{{cycle.total_volume | round(method="ceil", precision=1)}}{% else %}NA{% endif%}</td>
+            </tr> 
+            <tr>
+              <td>Last updated by</td>
+              <td>{{xuser.first_name}} {{xuser.last_name}}</td>
+            </tr> 
+          </tbody>
+        </table>
+      </div>
+      <div class="col col-4">
+        <table class="table table-bordered table-hover">
+          <caption>During injection</caption>
+          <thead>
+            <tr>
+              <th scope="col">Parameter</th>
+              <th scope="col">Value</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Last rate, {{text_units.rate}}</td>
+              <td>{% if cycle.last_rate.value is defined %}{{cycle.last_rate.value | round(method="ceil", precision=2)}}{% else %}NA{% endif %}</td>
+            </tr>
+            <tr>
+              <td>Avg rate, {{text_units.rate}}</td>
+              <td>{% if cycle.avg_rate is number %}{{cycle.avg_rate | round(method="ceil", precision=2)}}{% else %}NA{% endif %}</td>
+            </tr>
+            <tr>
+              <td>Max rate, {{text_units.rate}}</td>
+              <td>{% if cycle.max_rate is number %}{{cycle.max_rate | round(method="ceil", precision=2)}}{% else %}NA{% endif %}</td>
+            </tr>
+            <tr>
+              <td>Min BHP, {{text_units.pressure}}</td>
+              <td>{% if cycle.min_bhp is number %}{{cycle.min_bhp | round(method="ceil", precision=1)}}{% else %}NA{% endif %}</td>
+            </tr>
+            <tr>
+              <td>Max BHP, {{text_units.pressure}}</td>
+              <td>{% if cycle.max_bhp is number %}{{cycle.max_bhp | round(method="ceil", precision=1)}}{% else %}NA{% endif %}</td>
+            </tr>
+            <tr>
+              <td>Min WHP, {{text_units.pressure}}</td>
+              <td>{% if cycle.min_whp is number %}{{cycle.min_whp | round(method="ceil", precision=1)}}{% else %}NA{% endif %}</td>
+            </tr>
+            <tr>
+              <td>Max WHP, {{text_units.pressure}}</td>
+              <td>{% if cycle.max_whp is number %}{{cycle.max_whp | round(method="ceil", precision=1)}}{% else %}NA{% endif %}</td>
+            </tr>
+            <tr>
+              <td>Min BHT, {{text_units.temperature}}</td>
+              <td>{% if cycle.min_bht is number %}{{cycle.min_bht | round(method="ceil", precision=1)}}{% else %}NA{% endif %}</td>
+            </tr>
+            <tr>
+              <td>Max BHT, {{text_units.temperature}}</td>
+              <td>{% if cycle.max_bht is number %}{{cycle.max_bht | round(method="ceil", precision=1)}}{% else %}NA{% endif %}</td>
+            </tr>
+            <tr>
+              <td>Max Density, {{text_units.density}}</td>
+              <td>{% if cycle.max_rho is number %}{{cycle.max_rho | round(method="ceil", precision=1)}}{% else %}NA{% endif %}</td>
+            </tr>
+            <tr>
+              <td>Min Injectivity, {{text_units.injectivity}}</td>
+              <td>{% if cycle.min_ii is number %}{{cycle.min_ii | round(method="ceil", precision=1)}}{% else %}NA{% endif %}</td>
+            </tr>
+            <tr>
+              <td>Avg Injectivity, {{text_units.injectivity}}</td>
+              <td>{% if cycle.avg_ii is number %}{{cycle.avg_ii | round(method="ceil", precision=1)}}{% else %}NA{% endif %}</td>
+            </tr>
+            <tr>
+              <td>Max Injectivity, {{text_units.injectivity}}</td>
+              <td>{% if cycle.max_ii is number %}{{cycle.max_ii | round(method="ceil", precision=1)}}{% else %}NA{% endif %}</td>
+            </tr>
+          </tbody>
+        </table>
+        <table class="table table-bordered table-hover">
+          <caption>Analyses</caption>
+          <thead>
+            <tr>
+              <th scope="col">Parameter</th>
+              <th scope="col">Value</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>ShutinEnd Density, {{text_units.density}}</td>
+              <td>{% if cycle.end_rho is number %}{{cycle.end_rho | round(method="ceil", precision=1)}}{% else %}NA{% endif %}</td>
+            </tr>
+            <tr>
+              <td>ISIP BHP, {{text_units.pressure}}</td>
+              <td>{% if cycle.isip_bhp.upper_value is defined %}{{cycle.isip_bhp.lower_value | round(method="ceil", precision=1)}}{% else %}NA{% endif %}</td>
+            </tr>
+            <tr>
+              <td>ISIP BHP friction, {{text_units.pressure}}</td>
+              <td>{% if cycle.isip_bhp.upper_value is defined %}{{cycle.isip_bhp.upper_value - cycle.isip_bhp.lower_value | round(method="ceil", precision=1)}}{% else %}NA{% endif %}</td>
+            </tr>
+            <tr>
+              <td>ISIP WHP, {{text_units.pressure}}</td>
+              <td>{% if cycle.isip_whp.upper_value is defined %}{{cycle.isip_whp.lower_value | round(method="ceil", precision=1)}}{% else %}NA{% endif %}</td>
+            </tr>
+            <tr>
+              <td>ISIP WHP friction, {{text_units.pressure}}</td>
+              <td>{% if cycle.isip_whp.upper_value is defined %}{{cycle.isip_whp.upper_value - cycle.isip_whp.lower_value | round(method="ceil", precision=1)}}{% else %}NA{% endif %}</td>
+            </tr>
+            <tr>
+              <td>WaterHammer BHP, seconds</td>
+              <td>{% if cycle.waterhammer_bhp_endto is number %}{{cycle.waterhammer_bhp_endto - cycle.isip_bhp.time}}{% else %}NA{% endif %}</td>
+            </tr>
+            <tr>
+              <td>WaterHammer WHP, seconds</td>
+              <td>{% if cycle.waterhammer_whp_endto is number %}{{cycle.waterhammer_whp_endto - cycle.isip_whp.time}}{% else %}NA{% endif %}</td>
+            </tr>
+            <tr>
+              <td>Horner BHP, {{text_units.pressure}}</td>
+              <td>{% if cycle.horner_bhp.value is defined %}{{cycle.horner_bhp.value | round(method="ceil", precision=1)}}{% else %}NA{% endif %}</td>
+            </tr>
+            <tr>
+              <td>Horner WHP, {{text_units.pressure}}</td>
+              <td>{% if cycle.horner_whp.value is defined %}{{cycle.horner_whp.value | round(method="ceil", precision=1)}}{% else %}NA{% endif %}</td>
+            </tr>
+            <tr>
+              <td>Horner BHT, {{text_units.temperature}}</td>
+              <td>{% if cycle.horner_bht.value is defined %}{{cycle.horner_bht.value | round(method="ceil", precision=1)}}{% else %}NA{% endif %}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="col col-3">
+        {% include "cycles/menu" %}
+      </div>
+    </div>
+  </div>
+  <script>
+    var localT1 = new Date({{cycle.t1 * 1000}});
+    $("#t1").html(localT1);
+    var localT2 = new Date({{cycle.t2 * 1000}});
+    $("#t2").html(localT2);
+    var localT3 = new Date({{cycle.t3 * 1000}});
+    $("#t3").html(localT3);
+  </script>
+  <script src="/static-user/nav.js"></script>
+  <script>
+    {% include "cycles/switcher" %}
+  </script>
+{% endblock content %}

@@ -1,0 +1,54 @@
+html,
+body {
+  height: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+/*
+ *      spinner
+ * */
+.centered {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%,-50%);
+}
+
+#circle {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%,-50%);
+    width: 180px;
+    height: 180px;
+}
+
+.spinner {
+    width: calc(100% - 0px);
+    height: calc(100% - 0px);
+    border: 10px solid rgba(225, 225, 225, 0.43);
+    border-radius: 50%;
+    animation: rotate 5s linear infinite;
+}
+
+.spinner.red {
+    border-top: 10px solid rgba(255, 81, 81, 0.3);
+}
+
+.spinner.yellow {
+    border-top: 10px solid rgba(255, 255, 0, 0.3);
+}
+
+.spinner.green {
+    border-top: 10px solid rgba(0, 255, 0, 0.3);
+}
+
+.spinner.purple {
+    border-top: 10px solid rgba(255, 0, 255, 0.3);
+}
+
+@keyframes rotate {
+    100% { transform: rotate(360deg); }
+}
+

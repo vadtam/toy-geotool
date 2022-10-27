@@ -1,0 +1,34 @@
+# my custom git ignores
+
+# latex, texmaker
+*.aux
+*.log
+*.synctex.gz
+*.pdf
+*.out
+*.toc
+*.lof
+*.lot
+
+# vim
+*.swp
+*.swo
+
+# https keys
+*.pem
+*.csr
+
+# python
+__pycache__
+
+# rust
+pageserver/target/
+computer/target/
+
+# terraform
+.terraform
+*.tfstate
+*.tfstate.backup
+#*.terraform.lock.hcl
+*.terraform.tfstate.lock.info
+

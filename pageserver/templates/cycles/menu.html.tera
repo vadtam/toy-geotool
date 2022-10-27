@@ -1,0 +1,78 @@
+<h4 class="text-center">Control meny</h4>
+<div class="btn-group-vertical" role="group">
+  <input type="radio" class="btn-check" name="btnradio00" id="btnradio01" autocomplete="off" onchange="ChangeCycleStatus('{{company.id}}', '{{well.id}}', {{cycle.id}}, 'uncommitted');"{% if cycle.status == "Uncommitted" %} checked{% endif %}>
+  <label class="btn btn-outline-primary" for="btnradio01">Uncommitted</label>
+
+  <input type="radio" class="btn-check" name="btnradio00" id="btnradio02" autocomplete="off" onchange="ChangeCycleStatus('{{company.id}}', '{{well.id}}', {{cycle.id}}, 'baddata');"{% if cycle.status == "BadData" %} checked{% endif %}>
+  <label class="btn btn-outline-primary" for="btnradio02">Bad Data</label>
+
+  <input type="radio" class="btn-check" name="btnradio00" id="btnradio03" autocomplete="off" onchange="ChangeCycleStatus('{{company.id}}', '{{well.id}}', {{cycle.id}}, 'committed');"{% if cycle.status == "Committed" %} checked{% endif %}>
+  <label class="btn btn-outline-primary" for="btnradio03">Committed</label>
+</div>
+<br><br>
+<p>Use arrows to navigate between cycles and analyses.</p>
+<div class="btn-group" role="group">
+    <button id="dangerGroup" type="button" class="btn btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+      Danger Zone
+    </button>
+    <ul class="dropdown-menu" aria-labelledby="dangerGroup">
+      {% if is_last_cycle %}
+      <li><button class="dropdown-item"
+        onclick="DeleteCycle('{{company.id}}','{{well.id}}',{{cycle.id}});">Delete Cycle</button></li>
+      {% endif %}
+      <li><button class="dropdown-item"
+        onclick="window.location.href='/companies/{{company.id}}/wells/{{well.id}}/cycles/{{cycle.id}}/fix-batch-volume';">Fix Batch Volume</button></li>
+      <li><button class="dropdown-item"
+        onclick="window.location.href='/companies/{{company.id}}/wells/{{well.id}}/cycles/{{cycle.id}}/fix-well-data';">Fix Well Data</button></li>
+    </ul>
+</div>
+<br><br>
+<div class="btn-group-vertical" role="group" aria-label="Select analysis">
+  <input type="radio" class="btn-check" name="btnradio10" id="btnradio11" onchange="window.location.href='/companies/{{company.id}}/wells/{{well.id}}/cycles/{{cycle.id}}';"
+    autocomplete="off"{% if cycle_page == "cycle-info" %} checked{% endif %}>
+  <label class="btn btn-outline-primary" for="btnradio11">Info</label>
+
+  <input type="radio" class="btn-check" name="btnradio10" id="btnradio12" onchange="window.location.href='/companies/{{company.id}}/wells/{{well.id}}/cycles/{{cycle.id}}/last-rate-bhp';"
+    autocomplete="off"{% if cycle_page == "cycle-last-rate-bhp" %} checked{% endif %}>
+  <label class="btn btn-outline-primary" for="btnradio12">Last Rate (BHP)</label>
+
+  <input type="radio" class="btn-check" name="btnradio10" id="btnradio13" onchange="window.location.href='/companies/{{company.id}}/wells/{{well.id}}/cycles/{{cycle.id}}/last-rate-whp';"
+    autocomplete="off"{% if cycle_page == "cycle-last-rate-whp" %} checked{% endif %}>
+  <label class="btn btn-outline-primary" for="btnradio13">Last Rate (WHP)</label>
+
+  <input type="radio" class="btn-check" name="btnradio10" id="btnradio14" onchange="window.location.href='/companies/{{company.id}}/wells/{{well.id}}/cycles/{{cycle.id}}/horner-bhp';"
+    autocomplete="off"{% if cycle_page == "cycle-horner-bhp" %} checked{% endif %}>
+  <label class="btn btn-outline-primary" for="btnradio14">Horner BHP</label>
+
+  <input type="radio" class="btn-check" name="btnradio10" id="btnradio15" onchange="window.location.href='/companies/{{company.id}}/wells/{{well.id}}/cycles/{{cycle.id}}/horner-whp';"
+    autocomplete="off"{% if cycle_page == "cycle-horner-whp" %} checked{% endif %}>
+  <label class="btn btn-outline-primary" for="btnradio15">Horner WHP</label>
+
+  <input type="radio" class="btn-check" name="btnradio10" id="btnradio16" onchange="window.location.href='/companies/{{company.id}}/wells/{{well.id}}/cycles/{{cycle.id}}/horner-bht';"
+    autocomplete="off"{% if cycle_page == "cycle-horner-bht" %} checked{% endif %}>
+  <label class="btn btn-outline-primary" for="btnradio16">Horner BHT</label>
+
+  <input type="radio" class="btn-check" name="btnradio10" id="btnradio17" onchange="window.location.href='/companies/{{company.id}}/wells/{{well.id}}/cycles/{{cycle.id}}/fourier-bhp';"
+    autocomplete="off"{% if cycle_page == "cycle-fourier-bhp" %} checked{% endif %}>
+  <label class="btn btn-outline-primary" for="btnradio17">Fourier Water Hammer (BHP)</label>
+
+  <input type="radio" class="btn-check" name="btnradio10" id="btnradio18" onchange="window.location.href='/companies/{{company.id}}/wells/{{well.id}}/cycles/{{cycle.id}}/fourier-whp';"
+    autocomplete="off"{% if cycle_page == "cycle-fourier-whp" %} checked{% endif %}>
+  <label class="btn btn-outline-primary" for="btnradio18">Fourier Water Hammer (WHP)</label>
+
+  <input type="radio" class="btn-check" name="btnradio10" id="btnradio19" onchange="window.location.href='/companies/{{company.id}}/wells/{{well.id}}/cycles/{{cycle.id}}/stiffness-timeshift';"
+    autocomplete="off"{% if cycle_page == "cycle-stiffness-timeshift" %} checked{% endif %}>
+  <label class="btn btn-outline-primary" for="btnradio19">Stiffness Timeshift</label>
+
+  <input type="radio" class="btn-check" name="btnradio10" id="btnradio20" onchange="window.location.href='/companies/{{company.id}}/wells/{{well.id}}/cycles/{{cycle.id}}/stiffness';"
+    autocomplete="off"{% if cycle_page == "cycle-stiffness" %} checked{% endif %}>
+  <label class="btn btn-outline-primary" for="btnradio20">Stiffness</label>
+
+  <input type="radio" class="btn-check" name="btnradio10" id="btnradio21" onchange="window.location.href='/companies/{{company.id}}/wells/{{well.id}}/cycles/{{cycle.id}}/hall';"
+    autocomplete="off"{% if cycle_page == "cycle-hall" %} checked{% endif %}>
+  <label class="btn btn-outline-primary" for="btnradio21">Hall</label>
+
+  <input type="radio" class="btn-check" name="btnradio10" id="btnradio22" onchange="window.location.href='/companies/{{company.id}}/wells/{{well.id}}/cycles/{{cycle.id}}/flow-regimes';"
+    autocomplete="off"{% if cycle_page == "cycle-flow-regimes" %} checked{% endif %}>
+  <label class="btn btn-outline-primary" for="btnradio22">Flow Regimes</label>
+</div>

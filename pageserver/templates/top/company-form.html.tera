@@ -1,0 +1,84 @@
+{% extends "base" %}
+{% block title %}{% if is_new_mode %}New company{% else %}{% if user.category == "Admin" %}Edit company{% else %}View company{% endif %}{% endif %}{% endblock title %}
+{% block head %}
+<link rel="stylesheet" href="/static-user/nav.css" type="text/css">
+{% endblock head %}
+{% block content %}
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-auto">
+        <h3>{% if is_new_mode %}New company{% else %}{% if user.category == "Admin" %}Edit company{% else %}View company{% endif %}{% endif %}</h3>
+        <form method="post" id="company-form">
+          <div class="form-group">
+            <label class="sr-only" for="id">Company ID</label>
+            <div class="input-group mb-2">
+              <div class="input-group-prepend">
+                <div class="input-group-text">@</div>
+              </div>
+              <input type="text" class="form-control" name="id" autocomplete="off" aria-describedby="id-help" id="id-group"
+                placeholder="Enter company ID"{% if not is_new_mode %} value="{{company.id}}" disabled{% endif %} pattern="[a-z0-9]{2,32}" required>
+            </div>
+            {% if user.category == "Admin" %}
+            <small id="id-help" class="form-text text-muted">Text, lowercase without spaces [a-z0-9]{2,32}, e.g equinor</small>
+            {% endif %}
+          </div>
+          <br>
+          <div class="form-group">
+            <label for="name">Name</label>
+            <input type="text" class="form-control" name="name" autocomplete="off" aria-describedby="name-help"
+              placeholder="Enter company name"{% if not is_new_mode %} value="{{company.name}}"{% endif %} required{% if user.category != "Admin" %} disabled{% endif %}>
+            {% if user.category == "Admin" %}
+            <small id="name-help" class="form-text text-muted">Any text</small>
+            {% endif %}
+          </div>
+          <br>
+          {% if user.category == "Admin" %}
+          <button type="submit" class="btn btn-outline-primary">{% if is_new_mode %}Publish{% else %}Save{% endif %}</button>
+          {% endif %}
+        </form> 
+      </div>
+    </div>
+  </div>
+  <div class="modal" tabindex="-1" id="formErrorModal">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Server message</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p id="serverText"></p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="/static-user/nav.js"></script>
+  {% if user.category == "Admin" %}
+  <script>
+  document.forms['company-form'].addEventListener('submit', (event) => {
+    event.preventDefault();
+    fetch("{% if is_new_mode %}/companies/new{% else %}/companies/{{company.id}}/edit{% endif %}", {
+        method: 'POST',
+        body: new URLSearchParams(new FormData(event.target)) // event.target is the form
+    }).then((resp) => {
+        if(resp.status == 202) {
+            $('#serverText').text("");
+            window.location.href = "/companies";
+            return "";
+        } else {
+            return resp.text();
+        }; 
+    }).then((body) => {
+        if(body.length > 0) {
+          $('#serverText').text(body);
+          $('#formErrorModal').modal('toggle');
+        }
+    }).catch((error) => {
+    });
+  });
+  </script>
+  {% endif %}
+{% endblock content %}

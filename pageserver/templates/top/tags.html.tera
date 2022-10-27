@@ -1,0 +1,163 @@
+{% extends "base" %}
+{% block title %}Tags{% endblock title %}
+{% block head %}
+<link rel="stylesheet" href="/static-user/nav.css" type="text/css">
+{% endblock head %}
+{% block content %}
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-auto">
+        <table class="table table-responsive table-bordered table-hover text-center">
+          <caption>List of tags for {{well.name}}</caption>
+          <thead>
+            <tr>
+              {% if user.category == "Admin" %}
+              <th scope="col">Delete</th>
+              {% endif %}
+              <th scope="col">{% if user.category == "Admin" %}Edit{% else %}View{% endif %}</th>
+              <th scope="col">ID</th>
+              <th scope="col">Computation mode</th>
+              <th scope="col">Name</th>
+              <th scope="col">Units</th>
+              <th scope="col">Accuracy</th>
+              <th scope="col">Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              {% if user.category == "Admin" %}
+              <td>X</td>
+              {% endif %}
+              <td>X</td>
+              <td>1</td>
+              <td>{{well.bhp_mode}}</td>
+              <td>BHP</td>
+              <td>{{text_units.pressure}}</td>
+              <td>Float32</th>
+              <td>Bottom-hole pressure</td>
+            </tr>
+            <tr>
+              {% if user.category == "Admin" %}
+              <td>X</td>
+              {% endif %}
+              <td>X</td>
+              <td>2</td>
+              <td>{{well.bht_mode}}</td>
+              <td>BHT</td>
+              <td>{{text_units.temperature}}</td>
+              <td>Float32</th>
+              <td>Bottom-hole temperature</td>
+            </tr>
+            <tr>
+              {% if user.category == "Admin" %}
+              <td>X</td>
+              {% endif %}
+              <td>X</td>
+              <td>3</td>
+              <td>{{well.whp_mode}}</td>
+              <td>WHP</td>
+              <td>{{text_units.pressure}}</td>
+              <td>Float32</th>
+              <td>Wellhead pressure</td>
+            </tr>
+            <tr>
+              {% if user.category == "Admin" %}
+              <td>X</td>
+              {% endif %}
+              <td>X</td>
+              <td>4</td>
+              <td>{{well.rate_mode}}</td>
+              <td>Rate</td>
+              <td>{{text_units.rate}}</td>
+              <td>Float32</th>
+              <td>Injection rate</td>
+            </tr>
+            <tr>
+              {% if user.category == "Admin" %}
+              <td>X</td>
+              {% endif %}
+              <td>X</td>
+              <td>5</td>
+              <td>{{well.rho_mode}}</td>
+              <td>Density</td>
+              <td>{{text_units.density}}</td>
+              <td>Float32</th>
+              <td>Density of the injected fluid</td>
+            </tr>
+            <tr>
+              {% if user.category == "Admin" %}
+              <td>X</td>
+              {% endif %}
+              <td>X</td>
+              <td>6</td>
+              <td>{{well.vtot_mode}}</td>
+              <td>Total volume</td>
+              <td>{{text_units.volume}}</td>
+              <td>Float64</th>
+              <td>Total injected volume</td>
+            </tr>
+            <tr>
+              {% if user.category == "Admin" %}
+              <td>X</td>
+              {% endif %}
+              <td>X</td>
+              <td>7</td>
+              <td>{{well.ii_mode}}</td>
+              <td>Injectivity</td>
+              <td>{{text_units.injectivity}}</td>
+              <td>Float32</th>
+              <td>Injectivity</td>
+            </tr>
+            {% for tag in tags %}
+            <tr>
+              {% if user.category == "Admin" %}
+              <td><button type="button" class="btn btn-outline-danger"
+                onclick="ShowDeleteTagModal('{{company.id}}', '{{well.id}}', '{{tag.id}}');">Delete</button></td>
+              {% endif %}
+              <td><button type="button" class="btn btn-outline-primary"
+                onclick="location.href='/companies/{{company.id}}/wells/{{well.id}}/tags/{{tag.id}}/edit';">{% if user.category == "Admin" %}Edit{% else %}View{% endif %}</button></td>
+              <td>{{tag.id}}</td>
+              <td>Client</td>
+              <td>{{tag.name}}</td>
+              <td>{{tag.units_text}}</td>
+              <td>{% if tag.value_size == "F32" %}Float32{% else %}Float64{% endif %}</td>
+              <td>{{tag.description}}</td>
+            </tr>
+            {% endfor %}
+            {% if user.category == "Admin" %}
+            <tr>
+              <td>X</td>
+              <td>X</td>
+              <td>X</td>
+              <td>X</td>
+              <td><button type="button" class="btn btn-outline-primary"
+                onclick="location.href='/companies/{{company.id}}/wells/{{well.id}}/tags/new';">New tag</button></td>
+              <td>X</td>
+              <td>X</td>
+              <td>X</td>
+            </tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div class="modal" tabindex="-1" id="deleteTagModal">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Warning!</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+          <div class="modal-body">
+          <p id="deleteTagModalText"></p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+          <button type="button" id="deleteTagModalActionButton" class="btn btn-primary">Delete tag</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="/static-user/nav.js"></script>
+{% endblock content %}

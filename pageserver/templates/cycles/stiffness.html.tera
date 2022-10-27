@@ -1,0 +1,336 @@
+{% extends "base" %}
+{% block title %}Cycle {{cycle.id}}{% endblock title %}
+{% block head %}
+<link rel="stylesheet" href="/static-user/nav.css" type="text/css">
+{% endblock head %}
+{% block content %}
+  <div class="container-fluid">
+    <div class="row">
+      <div class="col col-9">
+        {% if cycle.stiffness.timeshift is defined %}
+        <canvas id="plot"></canvas>
+        <div class="modal" tabindex="-1" id="warningModal">
+          <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title">Warning!</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+              </div>
+              <div class="modal-body">
+                <p id="warningModalText"></p>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="d-flex justify-content-center">
+          <div class="btn-group dropup" role="group">
+            <button id="stiffnessGroup" type="button"
+              class="btn btn-outline-primary dropdown-toggle"
+              data-bs-toggle="dropdown" aria-expanded="false">
+              Stiffness
+            </button>
+            <ul class="dropdown-menu" aria-labelledby="stiffnessGroup">
+              <li><button class="dropdown-item" onclick="StartStiffness();">New</button></li>
+              <li><button class="dropdown-item" onclick="DeleteStiffness();">Delete all</button></li>
+            </ul>
+          </div>
+        </div>
+        {% else %}
+        <div class="h-100 d-flex align-items-center justify-content-center">
+          <p>Apply Stiffness Timeshift first.</p>
+        </div>
+        {% endif %}
+      </div>
+      <div class="col col-3">
+        {% include "cycles/menu" %}
+      </div>
+    </div>
+  </div>
+  <script src="/static-user/nav.js"></script>
+  <script>
+    {% if cycle.stiffness.timeshift is defined %}
+    var canvas = document.getElementById("plot");
+    window.addEventListener('resize', resizeCanvas, false);
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    resizeCanvas();
+    var ctx = canvas.getContext('2d');
+
+    var n_intersections = {{intersections | length}};
+    // new
+    var isNewMode = false;
+    var isNewPA1added = false;
+    var isNewPA2added = false;
+    var isNewPB1added = false;
+    var isNewPB2added = false;
+    var newID = 0;
+
+    const config = {
+      type: 'line',
+      data: {
+        datasets: [
+          {
+            label: 'Stiffness X-Plot, All Injection range',
+            data: {{xdata}},
+            borderColor: 'rgba(25, 3, 97, 0.8)',
+          },
+        ]
+      },
+      options: {
+        parsing: false,
+        normalized: true,
+        animation: false,
+        scales: {
+          x: {
+            type: 'linear',
+            title: {
+              display: true,
+              text: '{{titles.rate | safe}}',
+            },
+          },
+          y: {
+            title: {
+              display: true,
+              text: '{{titles.bhp}}',
+            }
+          },
+        },
+        plugins: {
+          zoom: {
+            pan: {
+              enabled: true,
+              mode: 'xy',
+            },
+            zoom: {
+              wheel: {
+                enabled: true,
+              },
+              pinch: {
+                enabled: true,
+              },
+              mode: 'xy',
+              overScaleMode: 'xy',
+            }
+          },
+          autocolors: false,
+          annotation: {
+            annotations: {
+              {% for x in intersections %}
+              line{{loop.index}}_1: {
+                  type: 'line',
+                  xMin: {{x.line_a.x1}},
+                  xMax: {{x.line_a.x2}},
+                  yScaleID: 'y',
+                  yMin: {{x.line_a.y1}},
+                  yMax: {{x.line_a.y2}},
+                  borderColor: 'rgba(43, 204, 211, 0.86)',
+                  borderWidth: 6,
+              },
+              line{{loop.index}}_2: {
+                  type: 'line',
+                  xMin: {{x.line_b.x1}},
+                  xMax: {{x.line_b.x2}},
+                  yScaleID: 'y',
+                  yMin: {{x.line_b.y1}},
+                  yMax: {{x.line_b.y2}},
+                  borderColor: 'rgba(43, 204, 211, 0.86)',
+                  borderWidth: 6,
+              },
+              {% endfor %}
+            }
+          }
+        },
+        onHover: (e) => {
+            if(isNewMode) {
+              var canvasPosition = Chart.helpers.getRelativePosition(e, chart);
+              var xValue = chart.scales.x.getValueForPixel(canvasPosition.x);
+              var yValue = chart.scales.y.getValueForPixel(canvasPosition.y);
+              var objs = chart.options.plugins.annotation.annotations;
+              if(typeof objs.p !== 'undefined') {
+                chart.options.plugins.annotation.annotations.p.xValue = xValue;
+                chart.options.plugins.annotation.annotations.p.yValue = yValue;
+                if(isNewPA1added && !isNewPA2added) {
+                    var key = GetLineKey(newID, 1);
+                    chart.options.plugins.annotation.annotations[key].xMax = xValue;
+                    chart.options.plugins.annotation.annotations[key].yMax = yValue;
+                } else if (isNewPB1added && !isNewPB2added) {
+                    var key = GetLineKey(newID, 2);
+                    chart.options.plugins.annotation.annotations[key].xMax = xValue;
+                    chart.options.plugins.annotation.annotations[key].yMax = yValue;
+                }
+              }
+              chart.update();
+            }
+        },
+        onClick: (e) => {
+            if(isNewMode) {
+              var canvasPosition = Chart.helpers.getRelativePosition(e, chart);
+              var xValue = chart.scales.x.getValueForPixel(canvasPosition.x);
+              var yValue = chart.scales.y.getValueForPixel(canvasPosition.y);
+              var objs = chart.options.plugins.annotation.annotations;
+
+              if(!isNewPA1added) {
+                isNewPA1added = true;
+                chart.options.plugins.annotation.annotations.p.xValue = xValue;
+                chart.options.plugins.annotation.annotations.p.yValue = yValue;
+
+                const line = {
+                  type: 'line',
+                  xMin: objs.p.xValue,
+                  xMax: objs.p.xValue,
+                  yScaleID: 'y',
+                  yMin: objs.p.yValue,
+                  yMax: objs.p.yValue,
+                  borderColor: 'rgba(43, 204, 211, 0.86)',
+                  borderWidth: 6,
+                }
+                var key = GetLineKey(newID, 1);
+                chart.options.plugins.annotation.annotations[key] = line;
+                chart.update();
+              } else if (!isNewPA2added) {
+                isNewPA2added = true;
+                var key = GetLineKey(newID, 1);
+                chart.options.plugins.annotation.annotations[key].xMax = xValue;
+                chart.options.plugins.annotation.annotations[key].yMax = yValue;
+                chart.update();
+              } else if (!isNewPB1added) {
+                isNewPB1added = true;
+                chart.options.plugins.annotation.annotations.p.xValue = xValue;
+                chart.options.plugins.annotation.annotations.p.yValue = yValue;
+
+                const line = {
+                  type: 'line',
+                  xMin: objs.p.xValue,
+                  xMax: objs.p.xValue,
+                  yScaleID: 'y',
+                  yMin: objs.p.yValue,
+                  yMax: objs.p.yValue,
+                  borderColor: 'rgba(43, 204, 211, 0.86)',
+                  borderWidth: 6,
+                }
+                var key = GetLineKey(newID, 2);
+                chart.options.plugins.annotation.annotations[key] = line;
+                chart.update();
+              } else if (!isNewPB2added) {
+                isNewPB2added = true;
+
+                var key = GetLineKey(newID, 2);
+                chart.options.plugins.annotation.annotations[key].xMax = xValue;
+                chart.options.plugins.annotation.annotations[key].yMax = yValue;
+                delete chart.options.plugins.annotation.annotations.p;
+
+                var objs = chart.options.plugins.annotation.annotations;
+                var lineA = objs[GetLineKey(newID, 1)];
+                var lineB = objs[GetLineKey(newID, 2)];
+                var form = {};
+                form["ax1"] = lineA.xMin;
+                form["ay1"] = lineA.yMin;
+                form["ax2"] = lineA.xMax;
+                form["ay2"] = lineA.yMax;
+                form["bx1"] = lineB.xMin;
+                form["by1"] = lineB.yMin;
+                form["bx2"] = lineB.xMax;
+                form["by2"] = lineB.yMax;
+
+                $.ajax({
+                  type: "POST",
+                  url: "/companies/{{company.id}}/wells/{{well.id}}/cycles/{{cycle.id}}/stiffness",
+                  data: form,
+                  success: function(data){
+                    n_intersections += 1;
+                    isNewMode = false;
+                    isNewPA1added = false;
+                    isNewPA2added = false;
+                    isNewPB1added = false;
+                    isNewPB2added = false;
+                    newID = 0;
+                  },
+                  error: function(){
+                  },
+                  contentType : "application/x-www-form-urlencoded"
+                });
+
+                chart.update();
+              }
+            }
+        },
+      }
+    };
+
+    function GetLineKey(id, localid) {
+        return 'line' + id.toString() + "_" + localid.toString();
+    };
+
+    function StartStiffness() {
+      var p = {
+        type: 'point',
+        xValue: 0,
+        yValue: 0,
+        yScaleID: 'y',
+        backgroundColor: 'rgba(177, 236, 173, 0.66)',
+        pointHitRadius: 25,
+      };
+      chart.options.plugins.annotation.annotations['p'] = p;
+      newID = n_intersections + 1;
+      isNewMode = true;
+    };
+
+    function CancelNewMode() {
+      isNewMode = false;
+      isNewPA1added = false;
+      isNewPA2added = false;
+      isNewPB1added = false;
+      isNewPB2added = false;
+      var key1 = GetLineKey(newID, 1);
+      delete chart.options.plugins.annotation.annotations[key1];
+      var key2 = GetLineKey(newID, 2);
+      delete chart.options.plugins.annotation.annotations[key2];
+      newID = 0;
+      delete chart.options.plugins.annotation.annotations.p;
+    };
+ 
+    function DeleteStiffness() {
+      if(n_intersections == 0) {
+        if(isNewMode) {
+          CancelNewMode();
+          return;
+        } else {
+          $('#warningModalText').text("Nothing to delete.");
+          $('#warningModal').modal('toggle');
+          return;
+        }
+      }
+
+      CancelNewMode();
+      while(n_intersections > 0) {
+        var key1 = GetLineKey(n_intersections, 1);
+        delete chart.options.plugins.annotation.annotations[key1];
+        var key2 = GetLineKey(n_intersections, 2);
+        delete chart.options.plugins.annotation.annotations[key2];
+        n_intersections -= 1;
+      }
+
+      $.ajax({
+        type: "DELETE",
+        url: "/companies/{{company.id}}/wells/{{well.id}}/cycles/{{cycle.id}}/stiffness",
+        success: function(data){
+        },
+        error: function(){
+        },
+        contentType : "text/plain"
+      });
+
+      chart.update();
+    };
+
+    Chart.defaults.font.size = 20;
+    let chart = new Chart(ctx, config);
+    {% endif %}
+    {% include "cycles/switcher" %}
+  </script>
+{% endblock content %}

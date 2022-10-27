@@ -1,0 +1,31 @@
+[package]
+name = "pageserver"
+version = "0.1.1"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+rand = "0.8.4"
+argon2 = "0.4.0"
+regex = "1.5.5"
+lazy_static = "1.4.0"
+hhmmss = "0.1"
+rustfft = "6.0.1"
+
+[dependencies.rocket]
+version = "0.5.0-rc.2"
+features = ["secrets", "json"]
+
+[dependencies.rocket_dyn_templates]
+version = "0.1.0-rc.2"
+features = ["handlebars", "tera"]
+
+[dependencies.rocket_db_pools]
+version = "0.1.0-rc.2"
+features = ["sqlx_postgres", "deadpool_redis"]
+
+[dependencies.sqlx]
+version = "0.5.13"
+features = ["macros"]
+

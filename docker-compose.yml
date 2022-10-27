@@ -1,0 +1,54 @@
+version: "3.9"
+services:
+  memdb:
+    container_name: geotool-memdb
+    deploy:
+      resources:
+        limits:
+          memory: 15M
+        reservations:
+          memory: 15M
+  db:
+    container_name: geotool-db
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 1G
+  computer:
+    container_name: geotool-computer
+    depends_on:
+      - "db"
+    environment:
+      GEOTOOL_COMPUTER_PG_URL: ${GEOTOOL_COMPUTER_PG_URL}
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 10M
+        reservations:
+          cpus: "0.5"
+          memory: 10M
+  pageserver:
+    container_name: geotool-pageserver
+    depends_on:
+      - "db"
+      - "memdb"
+    deploy:
+      resources:
+        limits:
+          memory: 150M
+        reservations:
+          memory: 150M
+  haproxy:
+    container_name: geotool-haproxy
+    depends_on:
+      - "pageserver"
+    deploy:
+      resources:
+        limits:
+          memory: 135M
+        reservations:
+          memory: 135M
+

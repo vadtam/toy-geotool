@@ -1,0 +1,171 @@
+{% extends "base" %}
+{% block title %}{% if is_new_mode %}New user{% else %}{% if user.category == "Admin" %}Edit user{% else %}View user{% endif %}{% endif %}{% endblock title %}
+{% block head %}
+<link rel="stylesheet" href="/static-user/nav.css" type="text/css">
+{% endblock head %}
+{% block content %}
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-auto">
+          <h3>{% if is_new_mode %}New user{% else %}{% if user.category == "Admin" %}Edit user{% else %}View user{% endif %}{% endif %}</h3>
+          <form method="post" id="company-form">
+              <div class="form-group">
+                  <label class="sr-only" for="id">User ID</label>
+                  <div class="input-group mb-2">
+                      <div class="input-group-prepend">
+                          <div class="input-group-text">@</div>
+                      </div>
+                      <input type="text" class="form-control" name="id" autocomplete="off"
+                          aria-describedby="id-help" id="id-group"
+                          placeholder="Enter user ID"{% if not is_new_mode %} value="{{xuser.id}}" disabled{% endif %} pattern="[a-z0-9]{2,32}" required>
+                  </div>
+                  {% if user.category == "Admin" %}
+                  <small id="id-help" class="form-text text-muted">Text, lowercase without spaces [a-z0-9]{2,32}, e.g johntravolta</small>
+                  {% endif %}
+              </div>
+              <div class="form-group">
+                  <label for="first-name">First Name</label>
+                  <input type="text" class="form-control" name="first-name" autocomplete="off" aria-describedby="first-name-help"
+                      placeholder="Enter first name"{% if not is_new_mode %} value="{{xuser.first_name}}"{% endif %} required{% if user.category != "Admin" %} disabled{% endif %}>
+                  {% if user.category == "Admin" %}
+                  <small id="name-help" class="form-text text-muted">Any text</small>
+                  {% endif %}
+              </div>
+              <div class="form-group">
+                  <label for="last-name">Last Name</label>
+                  <input type="text" class="form-control" name="last-name" autocomplete="off" aria-describedby="last-name-help"
+                      placeholder="Enter last name"{% if not is_new_mode %} value="{{xuser.last_name}}"{% endif %} required{% if user.category != "Admin" %} disabled{% endif %}>
+                  {% if user.category == "Admin" %}
+                  <small id="name-help" class="form-text text-muted">Any text</small>
+                  {% endif %}
+              </div>
+              <div class="form-group">
+                  <label for="email">Email</label>
+                  <input type="email" class="form-control" name="email" autocomplete="off" aria-describedby="email-help"
+                      placeholder="Enter email"{% if not is_new_mode %} value="{{xuser.email}}"{% endif %} required{% if user.category != "Admin" %} disabled{% endif %}>
+                  {% if user.category == "Admin" %}
+                  <small id="name-help" class="form-text text-muted">Any text</small>
+                  {% endif %}
+              </div>
+              {% if is_new_mode %}
+              <br>
+              <div class="form-group">
+                  <label for="password1">Password</label>
+                  <input type="password" class="form-control" name="password1" autocomplete="off"  
+                       aria-describedby="password-help" placeholder="Enter password" pattern="[A-Za-z0-9]{16,72}" required>
+                  <label for="password2">Confirm Password</label>
+                  <input type="password" class="form-control" name="password2" autocomplete="off"
+                       aria-describedby="password-help" placeholder="Confirm password" pattern="[A-Za-z0-9]{16,72}" required>
+                  <small id="last-name-help" class="form-text text-muted">Password, minimum 16 chars (allowed: A-Za-z0-9).</small>
+              </div>
+              {% endif %}
+              <br>
+              <div class="form-group">
+                  <label for="category">User category</label>
+                  <div class="form-check">
+                     <input class="form-check-input" type="radio" name="category" id="choice1"
+                         value="user" required{% if is_new_mode %}{{ user_category_activator(companyid = company.id, is_new_mode = is_new_mode, xusercategory = "User", refcategory = "User") }}{% else %}{{ user_category_activator(companyid = company.id, is_new_mode = is_new_mode, xusercategory = xuser.category, refcategory = "User") }}{% endif %}{% if user.category != "Admin" %} disabled{% endif %}>
+                     <label class="form-check-label" for="choice1">User</label>
+                 </div>
+                 {% if company.id == "geomec" %}
+                 <div class="form-check">
+                     <input class="form-check-input" type="radio" name="category" id="choice2"
+                         value="staff"{% if is_new_mode %}{{ user_category_activator(companyid = company.id, is_new_mode = is_new_mode, xusercategory = "Staff", refcategory = "Staff") }}{% else %}{{ user_category_activator(companyid = company.id, is_new_mode = is_new_mode, xusercategory = xuser.category, refcategory = "Staff") }}{% endif %}{% if user.category != "Admin" %} disabled{% endif %}>
+                     <label class="form-check-label" for="choice2">Staff</label>
+                 </div>
+                 <div class="form-check">
+                     <input class="form-check-input" type="radio" name="category" id="choice3"
+                         value="admin"{% if is_new_mode %}{{ user_category_activator(companyid = company.id, is_new_mode = is_new_mode, xusercategory = "Admin", refcategory = "Admin") }}{% else %}{{ user_category_activator(companyid = company.id, is_new_mode = is_new_mode, xusercategory = xuser.category, refcategory = "Admin") }}{% endif %}{% if user.category != "Admin" %} disabled{% endif %}>
+                     <label class="form-check-label" for="choice3">Admin</label>
+                 </div>
+                 {% endif %}
+              </div>
+              <br>
+              <div class="form-group">
+                  <label for="web-access">Website Access</label>
+                  <div class="form-check">
+                     <input class="form-check-input" type="radio" name="web-access" id="choice1"
+                         value="blocked" required{% if not is_new_mode %}{% if xuser.web_access == "Blocked" %} checked{% endif %}{% endif %}{% if user.category != "Admin" %} disabled{% endif %}>
+                     <label class="form-check-label" for="choice1">Blocked</label>
+                 </div>
+                 <div class="form-check">
+                     <input class="form-check-input" type="radio" name="web-access" id="choice2"
+                         value="readonly"{% if not is_new_mode %}{% if xuser.web_access == "Readonly" %} checked{% endif %}{% endif %}{% if user.category != "Admin" %} disabled{% endif %}>
+                     <label class="form-check-label" for="choice2">Readonly</label>
+                 </div>
+                 <div class="form-check">
+                     <input class="form-check-input" type="radio" name="web-access" id="choice3"
+                         value="full"{% if not is_new_mode %}{% if xuser.web_access == "Full" %} checked{% endif %}{% endif %}{% if user.category != "Admin" %} disabled{% endif %}>
+                     <label class="form-check-label" for="choice3">Full</label>
+                 </div>
+              </div>
+              <br>
+              <div class="form-group">
+                  <label for="api-access">Api Access</label>
+                  <div class="form-check">
+                     <input class="form-check-input" type="radio" name="api-access" id="choice1"
+                         value="blocked" required{% if not is_new_mode %}{% if xuser.api_access == "Blocked" %} checked{% endif %}{% endif %}{% if user.category != "Admin" %} disabled{% endif %}>
+                     <label class="form-check-label" for="choice1">Blocked</label>
+                 </div>
+                 <div class="form-check">
+                     <input class="form-check-input" type="radio" name="api-access" id="choice2"
+                         value="readonly"{% if not is_new_mode %}{% if xuser.api_access == "Readonly" %} checked{% endif %}{% endif %}{% if user.category != "Admin" %} disabled{% endif %}>
+                     <label class="form-check-label" for="choice2">Readonly</label>
+                 </div>
+                 <div class="form-check">
+                     <input class="form-check-input" type="radio" name="api-access" id="choice3"
+                         value="full"{% if not is_new_mode %}{% if xuser.api_access == "Full" %} checked{% endif %}{% endif %}{% if user.category != "Admin" %} disabled{% endif %}>
+                     <label class="form-check-label" for="choice3">Full</label>
+                 </div>
+              </div>
+              <br>
+              {% if user.category == "Admin" %}
+              <button type="submit" class="btn btn-outline-primary">{% if is_new_mode %}Publish{% else %}Save{% endif %}</button>
+              {% endif %}
+              <br><br>
+          </form> 
+      </div>
+    </div>
+  </div>
+  <div class="modal" tabindex="-1" id="formErrorModal">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Server message</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p id="serverText"></p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="/static-user/nav.js"></script>
+  {% if user.category == "Admin" %}
+  <script>
+  document.forms['company-form'].addEventListener('submit', (event) => {
+    event.preventDefault();
+    fetch("{% if is_new_mode %}/companies/{{company.id}}/users/new{% else %}/companies/{{company.id}}/users/{{xuser.id}}/edit{% endif %}", {
+        method: 'POST',
+        body: new URLSearchParams(new FormData(event.target)) // event.target is the form
+    }).then((resp) => {
+        if(resp.status == 202) {
+            $('#serverText').text("");
+            window.location.href = "/companies/{{company.id}}/users";
+        } else {
+            return resp.text();
+        }; 
+    }).then((body) => {
+        if(body.length > 0) {
+          $('#serverText').text(body);
+          $('#formErrorModal').modal('toggle');
+        }
+    }).catch((error) => {
+    });
+  });
+  </script>
+  {% endif %}
+{% endblock content %}

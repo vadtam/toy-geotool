@@ -1,0 +1,120 @@
+{% extends "base" %}
+{% block title %}Cycle {{cycle.id}}{% endblock title %}
+{% block head %}
+<link rel="stylesheet" href="/static-user/nav.css" type="text/css">
+{% endblock head %}
+{% block content %}
+  <div class="container-fluid">
+    <div class="row">
+      <div class="col col-9 d-flex justify-content-center">
+        <form method="post" id="fix-well-data-form">
+          <h4>Fix Well Data Form</h4>
+          <div class="form-group">
+            <label>This cycle and the following cycles will be removed.</label>
+            <br>
+            <label>The data will be wiped since this cycle's injection start for these tags.</label>
+            <br>
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" value="1" id="bhp-tag" name="tags">
+              <label class="form-check-label" for="bhp-tag">BHP</label>
+            </div>
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" value="2" id="bht-tag" name="tags">
+              <label class="form-check-label" for="bht-tag">BHT</label>
+            </div>
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" value="3" id="whp-tag" name="tags">
+              <label class="form-check-label" for="whp-tag">WHP</label>
+            </div>
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" value="4" id="rate-tag" name="tags">
+              <label class="form-check-label" for="rate-tag">Rate</label>
+            </div>
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" value="5" id="rho-tag" name="tags">
+              <label class="form-check-label" for="rho-tag">Density</label>
+            </div>
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" value="6" id="vtot-tag" name="tags">
+              <label class="form-check-label" for="vtot-tag">BHP</label>
+            </div>
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" value="7" id="injectivity-tag" name="tags">
+              <label class="form-check-label" for="injectivity-tag">Injectivity</label>
+            </div>
+            {% for tag in custom_tags%}
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" value="{{tag.id}}" id="{{tag.id}}-tag" name="tags">
+              <label class="form-check-label" for="{{tag.id}}-tag">Custom tag #{{tag.id}}: {{tag.name}}</label>
+            </div>
+            {% endfor %}
+          </div>
+          <br>
+          <button type="submit" class="btn btn-outline-primary">Publish</button>
+        </form>
+      </div>
+      <div class="col col-3">
+        {% include "cycles/menu" %}
+      </div>
+    </div>
+  </div>
+
+  <div id="loading" style="display: none;">
+    <div class="centered">
+      <span><img src="/static-public/favicon.ico" style="width: 75px; height: 75px"/></span>
+    </div>
+    <div id="circle">
+      <div class="spinner red">
+        <div class="spinner yellow">
+          <div class="spinner green">
+            <div class="spinner purple">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" tabindex="-1" id="formErrorModal">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Server message</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p id="serverText"></p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="/static-user/nav.js"></script>
+  <script>
+   {% include "cycles/switcher" %}
+
+  document.forms['fix-well-data-form'].addEventListener('submit', (event) => {
+    event.preventDefault();
+    $('#loading').show();
+    fetch("/companies/{{company.id}}/wells/{{well.id}}/cycles/{{cycle.id}}/fix-well-data", {
+        method: 'POST',
+        body: new URLSearchParams(new FormData(event.target)) // event.target is the form
+    }).then((resp) => {
+        if(resp.status == 202) {
+            window.location.href = "/companies/{{company.id}}/wells/{{well.id}}/cycles";
+        } else {
+            return resp.text();
+        }; 
+    }).then((body) => {
+        if(body.length > 0) {
+          $('#serverText').text(body);
+          $('#formErrorModal').modal('toggle');
+        }
+    }).catch((error) => {
+    });
+  });
+  </script>
+{% endblock content %}
+
