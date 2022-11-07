@@ -12,5 +12,3 @@ First, build Pageserver and Computer using "$ cargo build --release" using a nig
 - Terraform, AWS
 - SQL, Postgres
 - Linux, Debian 11
-## 💬 Good luck to you!
-<img align="left" src="./docs/evening.jpg?raw=true">
